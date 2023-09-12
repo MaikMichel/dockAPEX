@@ -1,0 +1,38 @@
+services:
+  apex:
+    image: apex_${APEX_FULL_VERSION}:${DCPAPX_PROJECT_NAME}
+    labels:
+      - "dockapex_config=${DCPAPX_PROJECT_NAME}"
+    build:
+      context: ../apex
+      args:
+        - APEX_VERSION=${APEX_VERSION}
+        - APEX_FULL_VERSION=${APEX_FULL_VERSION}
+        - APEX_URL=${APEX_URL}
+        - APEX_PSET_URL=${APEX_PSET_URL}
+        - APEX_IMAGE_PREFIX=${APEX_IMAGE_PREFIX}
+    container_name: apex
+    restart: always
+    depends_on:
+      oradb:
+        condition: service_healthy
+    volumes:
+      - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
+      - apx_imgs:/opt/oracle/images
+      - db_store:/opt/oracle/oradata
+    hostname: apex
+    healthcheck:
+      test: 'cat /opt/oracle/images/apex_version.txt | grep "${APEX_VERSION}"'
+      interval: 1m
+      timeout: 30s
+      retries: 45
+      start_period: 5m
+
+  ords:
+    depends_on:
+      apex:
+        condition: service_healthy
+
+volumes:
+  apx_imgs:
+    driver: local
