@@ -1,0 +1,32 @@
+services:
+  # Official latest AOP Version
+  aop:
+    image: apexrnd/apexofficeprint
+    container_name: aop
+    ports:
+      - 8010:${AOP_PORT}
+    restart: always
+    depends_on:
+      tomcat:
+        condition: service_healthy
+
+    entrypoint:
+      - /APEXOfficePrint/APEXOfficePrintLinux64
+      - -s
+      - /apexofficeprintstartup
+
+    healthcheck:
+      test: curl --fail -s http://localhost:${AOP_PORT}/ || exit 1
+      interval: 5m
+      timeout: 30s
+      retries: 10
+      start_period: 5m
+
+    volumes:
+      - apexofficeprint:/apexofficeprintstartup
+
+
+# Define some volumes
+volumes:
+  apexofficeprint:
+    driver: local
