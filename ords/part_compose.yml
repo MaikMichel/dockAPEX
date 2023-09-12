@@ -1,0 +1,41 @@
+services:
+  ords:
+    image: ords_${ORDS_VERSION}:${DCPAPX_PROJECT_NAME}
+    labels:
+      - "dockapex_config=${DCPAPX_PROJECT_NAME}"
+    build:
+      context: ../ords
+      args:
+        - ORDS_FULL_VERSION=${ORDS_FULL_VERSION}
+        - ORDS_VERSION=${ORDS_VERSION}
+    container_name: ords
+    ports:
+      - 8080:${ORDS_PORT}
+    restart: always
+    depends_on:
+      oradb:
+        condition: service_healthy
+      # apex:
+      #   condition: service_healthy
+      # => moved to apex.yml
+    volumes:
+      - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
+      - ords_config:/etc/ords/config
+      - apx_imgs:/opt/oracle/images
+      - ords_dir:/opt/ords-${ORDS_VERSION}
+    hostname: ords
+    healthcheck:
+      # test: 'curl --fail -s http://localhost:${ORDS_PORT}/ords/ || exit 1'
+      test: '/scripts/healtcheck_tomcat_${TOMCAT}.sh ${ORDS_PORT}'
+      interval: 1m
+      timeout: 30s
+      retries: 10
+      start_period: 5m
+
+
+
+volumes:
+  ords_config:
+    driver: local
+  ords_dir:
+    driver: local
