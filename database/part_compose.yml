@@ -1,0 +1,22 @@
+services:
+  oradb:
+    container_name: oradb
+    image: gvenzl/oracle-xe:21-full
+    labels:
+      - "dockapex_config=${DCPAPX_PROJECT_NAME}"
+    ports:
+      - 1521:${DB_PORT}
+    environment:
+      - ORACLE_PASSWORD=${DB_PASS}
+    volumes:
+      - db_store:/opt/oracle/oradata
+    hostname: ${DB_HOST}
+    healthcheck:
+      test: [ "CMD", "/opt/oracle/healthcheck.sh"]
+      interval: 10s
+      retries: 45
+      start_period: 5m
+
+volumes:
+  db_store:
+    driver: local
