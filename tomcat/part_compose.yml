@@ -1,0 +1,38 @@
+services:
+  tomcat:
+    image: tomcat_${TOMCAT_VERSION}:${DCPAPX_PROJECT_NAME}
+    labels:
+      - "dockapex_config=${DCPAPX_PROJECT_NAME}"
+    build:
+      context: ../tomcat
+      args:
+        - TOMCAT_VERSION=${TOMCAT_VERSION}
+        - TOMCAT_URL=${TOMCAT_URL}
+        - ORDS_VERSION=${ORDS_VERSION}
+    container_name: tomcat
+    ports:
+      - 9080:${TOMCAT_PORT}
+    restart: always
+    depends_on:
+      ords:
+        condition: service_healthy
+    volumes:
+      - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
+      - apx_imgs:/opt/oracle/images
+      - ords_config:/etc/ords/config
+      - ords_dir:/opt/ords-${ORDS_VERSION}
+      - tom_conf:/opt/tomcat-${TOMCAT_VERSION}/conf
+      - tom_apps:/opt/tomcat-${TOMCAT_VERSION}/webapps
+    hostname: tomcat
+    healthcheck:
+      test: 'curl --fail -s http://localhost:${TOMCAT_PORT}/ords/ || exit 1'
+      interval: 1m
+      timeout: 30s
+      retries: 10
+      start_period: 5m
+
+volumes:
+  tom_conf:
+    driver: local
+  tom_apps:
+    driver: local
