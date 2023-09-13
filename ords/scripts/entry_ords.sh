@@ -126,6 +126,14 @@ ${ORDS_PASSWORD}
 EOF
 
   fi
+
+
+  if [[ ${TOMCAT,,} == "true" ]]; then
+    # Add forceHTTPs, when TOMCAT Mode
+    SETTINGS_XML="${ORDS_CONF_DIR}/global/settings.xml"
+    FORCS_HTML='<entry key="security.forceHTTPS">true</entry>'
+    sed -i "/<\/properties>/i ${FORCS_HTML}" "${SETTINGS_XML}"
+  fi
 }
 
 

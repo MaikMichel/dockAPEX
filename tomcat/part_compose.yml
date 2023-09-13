@@ -28,8 +28,8 @@ services:
       test: 'curl --fail -s http://localhost:${TOMCAT_PORT}/ords/ || exit 1'
       interval: 1m
       timeout: 30s
-      retries: 10
-      start_period: 5m
+      retries: 45
+
 
 volumes:
   tom_conf:

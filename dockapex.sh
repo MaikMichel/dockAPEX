@@ -79,6 +79,10 @@ if [[ "$AOP" == true ]]; then
   DCKAPX_COMP_FILES+="-f ./aop/part_compose.yml "
 fi
 
+if [[ "$TRAEFIK" == true ]]; then
+  DCKAPX_COMP_FILES+="-f ./traefik/part_compose.yml "
+fi
+
 # validate command
 # TODO: validate command
 
