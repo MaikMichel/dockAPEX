@@ -1,20 +1,34 @@
 services:
 
+  # TODO: das hier nur wenn tomcat mode
   tomcat:
-    ports:
-      - 9080:${TOMCAT_PORT}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.tomcat.rule=Host(`dockapex.die21.de`)"
+      - "traefik.http.routers.tomcat.rule=Host(`${TRAEFIK_DOMAIN}`)"
       - "traefik.http.routers.tomcat.entrypoints=websecure"
       - "traefik.http.routers.tomcat.tls.certresolver=myresolver"
       # the middleware 'add-context' must be defined so that the regex rules can be attached to it
       - "traefik.http.routers.tomcat.middlewares=add-context"
 
-      # here is the logic provided by gustavomtborges of this gist:
+      # here is the logic to force root domain to redirect to default url
       - "traefik.http.middlewares.add-context.redirectregex.regex=^https:\\/\\/([^\\/]+)\\/?$$"
-      - "traefik.http.middlewares.add-context.redirectregex.replacement=https://$$1/ords/r/dockapex/demo"
+      - "traefik.http.middlewares.add-context.redirectregex.replacement=https://$$1/${TRAEFIK_DEFAULT_ROUTE}"
 
+  # TODO: brauchen hier noch den ords mode
+
+
+  # TODO: AOP nur wenn true
+  aop:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.aop.rule=Host(`${TRAEFIK_DOMAIN}`) && PathPrefix(`/aop`)"
+      - "traefik.http.routers.aop.entrypoints=websecure"
+      - "traefik.http.routers.aop.tls.certresolver=myresolver"
+      - "traefik.http.routers.aop.tls: true"
+
+      - "traefik.http.routers.aop.middlewares=basic_auth,aopstrip"
+      - "traefik.http.middlewares.basic_auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}"
+      - "traefik.http.middlewares.aopstrip.stripprefix.prefixes=/aop"
 
   ################################################
   ####        Traefik Proxy Setup           #####
@@ -30,7 +44,8 @@ services:
       - "--log.level=DEBUG"
       - "--accesslog=true"
       - "--accesslog.filePath=/logs/access.log"
-      - "--api.insecure=true"
+      - "--api.insecure=false"
+      - "--api.dashboard=${TRAEFIK_DASHBOARD}"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
@@ -39,7 +54,7 @@ services:
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.myresolver.acme.email=maik.michel78+acme@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.email=${TRAEFIK_LETSENCRYPT_EMAIL}"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     volumes:
       - "./traefik/config:/letsencrypt"
@@ -48,12 +63,15 @@ services:
     labels:
     #### Labels define the behaviour and rules of the traefik proxy for this container ####
       - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
-      - "traefik.http.routers.traefik.rule=Host(`dockapex.die21.de`) && (PathPrefix(`/traefik`) || PathPrefix(`/api`))" # <== Setting the domain for the dashboard
+      - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DOMAIN}`) && (PathPrefix(`/traefik`) || PathPrefix(`/api`))" # <== Setting the domain for the dashboard
        #### set traefik dashboard
       - "traefik.http.routers.traefik.service=api@internal"
 
+      - "traefik.http.routers.traefik.middlewares=basic-auth-global,mystrip"
+      - "traefik.http.middlewares.basic-auth-global.basicauth.users=${TRAEFIK_DASHBOARD_USER}"
+
       #### set middlewares: stripprefix for dashboard
-      - "traefik.http.routers.traefik.middlewares=mystrip"
+      # - "traefik.http.routers.traefik.middlewares=mystrip"
       - "traefik.http.middlewares.mystrip.stripprefix.prefixes=/traefik"
 
       # #### set TLS
@@ -69,3 +87,5 @@ services:
     depends_on:
       tomcat:
         condition: service_healthy
+      aop:
+        condition: service_started

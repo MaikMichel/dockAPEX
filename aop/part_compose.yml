@@ -15,12 +15,12 @@ services:
       - -s
       - /apexofficeprintstartup
 
-    healthcheck:
-      test: curl --fail -s http://localhost:${AOP_PORT}/ || exit 1
-      interval: 5m
-      timeout: 30s
-      retries: 10
-      start_period: 5m
+    # healthcheck:
+    #   test: curl --fail -s http://localhost:${AOP_PORT}/ || exit 1
+    #   interval: 5m
+    #   timeout: 30s
+    #   retries: 10
+    #   start_period: 5m
 
     volumes:
       - apexofficeprint:/apexofficeprintstartup

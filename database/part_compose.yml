@@ -7,7 +7,10 @@ services:
     ports:
       - 1521:${DB_PORT}
     environment:
-      - ORACLE_PASSWORD=${DB_PASS}
+      - ORACLE_PASSWORD_FILE=/run/secrets/db_pwd
+      # - ORACLE_PASSWORD=${DB_PASS}
+    secrets:
+      - db_pwd
     volumes:
       - db_store:/opt/oracle/oradata
     hostname: ${DB_HOST}
@@ -20,3 +23,7 @@ services:
 volumes:
   db_store:
     driver: local
+
+secrets:
+  db_pwd:
+    environment: DB_PASS

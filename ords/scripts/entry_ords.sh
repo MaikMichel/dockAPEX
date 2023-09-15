@@ -4,6 +4,9 @@
 CONN_STRING_FILE="/opt/oracle/config.env"
 APEX_IMAGE_DIR="/opt/oracle/images"
 
+ORDS_PASSWORD=$(<"/run/secrets/ords_pwd")
+DB_PASS=$(<"/run/secrets/db_pwd")
+
 printf "%s%s\n" "INFO : " "This container will start a service running ORDS $ORDS_VERSION."
 
 ### Check connection vars inside file
@@ -80,6 +83,7 @@ function install_ords() {
   printf "%s%s\n" "INFO : " "========================================"
   printf "%s%s\n" "INFO : " "========================================"
   printf "%s%s\n" "INFO : " "Preparing ORDS - ${DB_NAME}"
+
 
 
   ${ORDS_DIR}bin/ords --config ${ORDS_CONF_DIR} install \

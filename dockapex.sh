@@ -52,6 +52,13 @@ else
   DCPAPX_PROJECT_NAME=$(basename "${DCKAPX_CONF_FILE%.*}")
   DCKAPX_CONF_FILE=$(pwd)/${DCKAPX_CONF_FILE}
 
+  # is there a secret file
+  DCKAPX_SECRET_FILE="${DCKAPX_CONF_FILE%.*}.sec"
+  if [[ -f ${DCKAPX_SECRET_FILE} ]]; then
+    echo "exporting... ${DCKAPX_SECRET_FILE}"
+    source ${DCKAPX_SECRET_FILE}
+  fi
+
   ## stop export declaration
   set +a
 fi

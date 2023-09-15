@@ -8,6 +8,9 @@ services:
       args:
         - ORDS_FULL_VERSION=${ORDS_FULL_VERSION}
         - ORDS_VERSION=${ORDS_VERSION}
+    secrets:
+      - ords_pwd
+      - db_pwd
     container_name: ords
     ports:
       - 8080:${ORDS_PORT}
@@ -39,3 +42,11 @@ volumes:
     driver: local
   ords_dir:
     driver: local
+  apx_imgs:
+    driver: local
+
+secrets:
+  ords_pwd:
+    environment: ORDS_PASSWORD
+  db_pwd:
+    environment: DB_PASS

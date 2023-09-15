@@ -20,6 +20,8 @@ ADD ${APEX_PSET_URL} "${APEX_DIR}/apex_patch.zip"
 # all installation files
 COPY scripts /scripts
 
+# TODO: Das hier nach ganz oben und allen ein gleiches BaseImage verpacken
+
 # Now Install required packages
 RUN set -x && microdnf update -y && \
 microdnf install -y unzip openssl python3 oracle-instantclient-release-el8 && \
@@ -31,6 +33,7 @@ echo 'alias ll="ls -la"' >> ~/.bashrc
 
 WORKDIR ${APEX_DIR}
 
+# TODO: Im EntryPoint entpacken
 RUN unzip -q apex_${APEX_VERSION}_en.zip && \
     rm apex_${APEX_VERSION}_en.zip && \
     unzip -q apex_patch.zip -d patchset && \
