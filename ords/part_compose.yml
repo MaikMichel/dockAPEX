@@ -16,7 +16,7 @@ services:
       - 8080:${ORDS_PORT}
     restart: always
     depends_on:
-      oradb:
+      database:
         condition: service_healthy
       # apex:
       #   condition: service_healthy

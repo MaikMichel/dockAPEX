@@ -1,6 +1,6 @@
 services:
-  oradb:
-    container_name: oradb
+  database:
+    container_name: database
     image: gvenzl/oracle-xe:21-full
     labels:
       - "dockapex_config=${DCPAPX_PROJECT_NAME}"

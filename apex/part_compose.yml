@@ -14,7 +14,7 @@ services:
     container_name: apex
     restart: always
     depends_on:
-      oradb:
+      database:
         condition: service_healthy
     volumes:
       - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
