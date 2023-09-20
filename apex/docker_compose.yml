@@ -11,6 +11,8 @@ services:
         - APEX_URL=${APEX_URL}
         - APEX_PSET_URL=${APEX_PSET_URL}
         - APEX_IMAGE_PREFIX=${APEX_IMAGE_PREFIX}
+    secrets:
+      - db_pwd
     container_name: apex
     restart: always
     depends_on:
@@ -36,3 +38,7 @@ services:
 volumes:
   apx_imgs:
     driver: local
+
+secrets:
+  db_pwd:
+    environment: DB_PASS

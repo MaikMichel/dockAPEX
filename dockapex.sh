@@ -46,8 +46,9 @@ if [[ ! -f ${DCKAPX_CONF_FILE} ]]; then
   echo_error "Missing configuration file: ${DCKAPX_CONF_FILE}"
   exit 1
 else
-  ##  export declaration
+  ##  export configuration
   set -a
+
   source ${DCKAPX_CONF_FILE}
   DCPAPX_PROJECT_NAME=$(basename "${DCKAPX_CONF_FILE%.*}")
   DCKAPX_CONF_FILE=$(pwd)/${DCKAPX_CONF_FILE}
@@ -55,11 +56,10 @@ else
   # is there a secret file
   DCKAPX_SECRET_FILE="${DCKAPX_CONF_FILE%.*}.sec"
   if [[ -f ${DCKAPX_SECRET_FILE} ]]; then
-    echo "exporting... ${DCKAPX_SECRET_FILE}"
     source ${DCKAPX_SECRET_FILE}
   fi
 
-  ## stop export declaration
+  ## stop export configuration
   set +a
 fi
 
@@ -67,27 +67,27 @@ DCKAPX_COMP_FILES=""
 
 # TODO: validate required params
 if [[ "$DB" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./database/part_compose.yml "
+  DCKAPX_COMP_FILES+="-f ./database/docker_compose.yml "
 fi
 
 if [[ "$APEX" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./apex/part_compose.yml "
+  DCKAPX_COMP_FILES+="-f ./apex/docker_compose.yml "
 fi
 
 if [[ "$ORDS" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./ords/part_compose.yml "
+  DCKAPX_COMP_FILES+="-f ./ords/docker_compose.yml "
 fi
 
 if [[ "$TOMCAT" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./tomcat/part_compose.yml "
+  DCKAPX_COMP_FILES+="-f ./tomcat/docker_compose.yml "
 fi
 
 if [[ "$AOP" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./aop/part_compose.yml "
+  DCKAPX_COMP_FILES+="-f ./aop/docker_compose.yml "
 fi
 
 if [[ "$TRAEFIK" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./traefik/part_compose.yml "
+  DCKAPX_COMP_FILES+="-f ./traefik/docker_compose.yml "
 fi
 
 # validate command

@@ -57,8 +57,8 @@ services:
       - "--certificatesresolvers.myresolver.acme.email=${TRAEFIK_LETSENCRYPT_EMAIL}"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     volumes:
-      - "./traefik/config:/letsencrypt"
-      - "./traefik/logs:/logs"
+      - tfk_conf:/letsencrypt
+      - tfk_logs:/logs
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     labels:
     #### Labels define the behaviour and rules of the traefik proxy for this container ####
@@ -89,3 +89,9 @@ services:
         condition: service_healthy
       aop:
         condition: service_started
+
+volumes:
+  tfk_logs:
+    driver: local
+  tfk_conf:
+    driver: local

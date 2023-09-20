@@ -4,15 +4,16 @@
 CONN_STRING_FILE="/opt/oracle/config.env"
 APEX_IMAGE_DIR="/opt/oracle/images"
 
-ORDS_PASSWORD=$(<"/run/secrets/ords_pwd")
-DB_PASS=$(<"/run/secrets/db_pwd")
-
 printf "%s%s\n" "INFO : " "This container will start a service running ORDS $ORDS_VERSION."
 
 ### Check connection vars inside file
 function check_conn_definition() {
   if [[ -f $CONN_STRING_FILE ]]; then
     source $CONN_STRING_FILE
+
+
+    ORDS_PASSWORD=$(<"/run/secrets/ords_pwd")
+    DB_PASS=$(<"/run/secrets/db_pwd")
 
     if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
       printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
@@ -84,7 +85,18 @@ function install_ords() {
   printf "%s%s\n" "INFO : " "========================================"
   printf "%s%s\n" "INFO : " "Preparing ORDS - ${DB_NAME}"
 
+  SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
 
+  sqlplus /nolog << EOF
+    conn ${SQLPLUS_ARGS}
+
+    Prompt setting PWD for APEX_PUBLIC_USER
+    alter user APEX_PUBLIC_USER identified by "$ORDS_PASSWORD" account unlock;
+
+    Prompt calling apex_rest_config_core
+    @apex_rest_config_core @ $ORDS_PASSWORD $ORDS_PASSWORD
+
+EOF
 
   ${ORDS_DIR}bin/ords --config ${ORDS_CONF_DIR} install \
       --log-folder ${ORDS_CONF_DIR}/logs/${DB_NAME} \
@@ -109,6 +121,18 @@ EOF
     printf "%s%s\n" "INFO : " "========================================"
     printf "%s%s\n" "INFO : " "========================================"
     printf "%s%s\n" "INFO : " "Preparing ORDS - ${APEX_SECND_PDB_NAME}"
+
+    SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB_NAME} as sysdba"
+    sqlplus /nolog << EOF
+    conn ${SQLPLUS_ARGS}
+
+    Prompt setting PWD for APEX_PUBLIC_USER
+    alter user APEX_PUBLIC_USER identified by "$ORDS_PASSWORD" account unlock;
+
+    Prompt calling apex_rest_config_core
+    @apex_rest_config_core @ $ORDS_PASSWORD $ORDS_PASSWORD
+
+EOF
 
 
     ${ORDS_DIR}bin/ords --config ${ORDS_CONF_DIR} install \

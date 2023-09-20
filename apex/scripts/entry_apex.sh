@@ -15,6 +15,8 @@ function check_conn_definition() {
   if [[ -f $CONN_STRING_FILE ]]; then
     source ${CONN_STRING_FILE}
 
+    DB_PASS=$(<"/run/secrets/db_pwd")
+
     if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
       printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
       SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
@@ -243,12 +245,6 @@ function config_apex() {
     cd ${APEX_HOME}
     sqlplus /nolog << EOF
     conn ${SQLPLUS_ARGS}
-
-    Prompt setting PWD for APEX_PUBLIC_USER
-    alter user APEX_PUBLIC_USER identified by "$ORDS_PASSWORD" account unlock;
-
-    Prompt calling apex_rest_config_core
-    @apex_rest_config_core @ $ORDS_PASSWORD $ORDS_PASSWORD
 
     Prompt setting ACLS
     -- From Joels blog: http://joelkallman.blogspot.ca/2017/05/apex-and-ords-up-and-running-in2-steps.html
