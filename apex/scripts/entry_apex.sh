@@ -323,23 +323,23 @@ function config_apex() {
     PROMPT  ==   SETUP SMTP
     PROMPT  =============================================================================
     PROMPT INTERNAL_MAIL:     ${APEX_INTERNAL_MAIL}
-    PROMPT SMTP_HOST_ADDRESS: ${SMTP_HOST_ADDRESS}
-    PROMPT SMTP_FROM:         ${SMTP_FROM}
-    PROMPT SMTP_USERNAME:     ${SMTP_USERNAME}
+    PROMPT SMTP_HOST_ADDRESS: ${APEX_SMTP_HOST_ADDRESS}
+    PROMPT SMTP_FROM:         ${APEX_SMTP_FROM}
+    PROMPT SMTP_USERNAME:     ${APEX_SMTP_USERNAME}
     PROMPT  =============================================================================
     BEGIN
 
-      apex_instance_admin.set_parameter('SMTP_HOST_ADDRESS', '${SMTP_HOST_ADDRESS}');
-      apex_instance_admin.set_parameter('SMTP_FROM', '${SMTP_FROM}');
-      apex_instance_admin.set_parameter('SMTP_USERNAME', '${SMTP_USERNAME}');
-      apex_instance_admin.set_parameter('SMTP_PASSWORD', '${SMTP_PASSWORD}');
+      apex_instance_admin.set_parameter('APEX_SMTP_HOST_ADDRESS', '${APEX_SMTP_HOST_ADDRESS}');
+      apex_instance_admin.set_parameter('APEX_SMTP_FROM',         '${APEX_SMTP_FROM}');
+      apex_instance_admin.set_parameter('APEX_SMTP_USERNAME',     '${APEX_SMTP_USERNAME}');
+      apex_instance_admin.set_parameter('APEX_SMTP_PASSWORD',     '${APEX_SMTP_PASSWORD}');
 
       commit;
 
-      apex_mail.send(p_from => '${SMTP_FROM}'
+      apex_mail.send(p_from => '${APEX_SMTP_FROM}'
                     ,p_to   => '${APEX_INTERNAL_MAIL}'
-                    ,p_subj => 'dockAPEX successfully installed'
-                    ,p_body => 'Test Hey ho, that works');
+                    ,p_subj => 'Congratulations, dockAPEX successfully installed'
+                    ,p_body => 'Oracle APEX has successfully installed to dockAPEX project: ${DCPAPX_PROJECT_NAME}');
 
       apex_mail.push_queue();
     END;
