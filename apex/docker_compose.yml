@@ -11,6 +11,8 @@ services:
         - APEX_URL=${APEX_URL}
         - APEX_PSET_URL=${APEX_PSET_URL}
         - APEX_IMAGE_PREFIX=${APEX_IMAGE_PREFIX}
+    environment:
+      - DCPAPX_PROJECT_NAME=${DCPAPX_PROJECT_NAME}
     secrets:
       - db_pwd
     container_name: apex
