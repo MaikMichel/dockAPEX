@@ -178,19 +178,22 @@ function run_ords() {
     printf "%s%s\n" "INFO : " "Starting the ORDS services."
   fi
 
+  # ping DYNDNS to set IP
+  if [[ -n ${ORDS_DDNS_USER} ]] && [[ -n ${ORDS_DDNS_URL} ]] ; then
+    if [[ -f "/run/secrets/ddns_pwd" ]]; then
+      ORDS_DDNS_PASSWORD=$(<"/run/secrets/ddns_pwd")
+      printf "%s%s\n" "INFO : " "DynDNS Configuration found, curling to: ${ORDS_DDNS_URL}"
+      curl https://${ORDS_DDNS_USER}:${ORDS_DDNS_PASSWORD}@${ORDS_DDNS_URL}
+    fi
+  fi
+
+  # Start serving or let TOMCAT to that
   if [[ ${TOMCAT,,} != "true" ]]; then
     printf "\a%s%s\n" "INFO : " "ORDS will serve ..."
     echo "Mode for ORDS = 'ORDS'" > "${APEX_IMAGE_DIR}/ords_mode.txt"
 
     export CERT_FILE="$ORDS_CONF_DIR/ssl/cert.crt"
     export KEY_FILE="$ORDS_CONF_DIR/ssl/key.key"
-
-    # Access to a shared docker volume leads to a docker abort!!!
-    # So I copy the images to this dir / volume
-    # ORDS_IMAGE_DIR="/opt/oracle/ords_images"
-    # [[ -d "${ORDS_IMAGE_DIR}" ]] || mkdir "${ORDS_IMAGE_DIR}"
-    # rm -rf ${ORDS_IMAGE_DIR}/*
-    # cp -rf ${APEX_IMAGE_DIR} ${ORDS_IMAGE_DIR}
 
     ORDS_IMAGE_DIR=${APEX_IMAGE_DIR}
 
@@ -209,6 +212,7 @@ function run_ords() {
 
 function run_script() {
   export _JAVA_OPTIONS="-Xms1126M -Xmx1126M"
+
   if [ -e $ORDS_CONF_DIR/databases/default/pool.xml ]; then
     # we have a configuration, so lets check if there is something to do
     if [ -e "${CONN_STRING_FILE}" ]; then
@@ -218,20 +222,6 @@ function run_script() {
       ## install
       printf "\a%s%s\n" "WARN : " "The container will start with the detected configuration..."
       run_ords
-      # if [ "${IGNORE_APEX}" == "TRUE" ]; then
-      #   printf "\a%s%s\n" "WARN : " "The IGNORE_APEX variable is TRUE, Oracle APEX will not be Installed, Upgraded or Configured on your Database"
-      # else
-      #   apex
-      # fi
-      # if [ "${INS_STATUS}" == "INSTALLED" ]; then
-      #   run_ords
-      # elif [ "${INS_STATUS}" == "UPGRADE" ]; then
-      #   install_ords
-      #   run_ords
-      # elif [ "${INS_STATUS}" == "FRESH" ]; then
-      #   install_ords
-      #   run_ords
-      # fi
     else
       printf "\a%s%s\n" "WARN : " "A conn_string file has not been provided, but a mounted configuration has been detected in /etc/ords/config."
       printf "\a%s%s\n" "WARN : " "The container will start with the detected configuration."
@@ -254,6 +244,7 @@ function run_script() {
       printf "\a%s%s\n" "WARN : " "Nothing configured jet"
     fi
   fi
+
 }
 run_script
 

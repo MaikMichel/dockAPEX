@@ -11,6 +11,7 @@ services:
     secrets:
       - ords_pwd
       - db_pwd
+      - ddns_pwd
     container_name: ords
     ports:
       - 8080:${ORDS_PORT}
@@ -47,3 +48,5 @@ secrets:
     environment: ORDS_PASSWORD
   db_pwd:
     environment: DB_PASS
+  ddns_pwd:
+    environment: ORDS_DDNS_PASSWORD

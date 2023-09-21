@@ -60,6 +60,8 @@ services:
       - tfk_conf:/letsencrypt
       - tfk_logs:/logs
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    secrets:
+      - trfk_usrpwd
     labels:
     #### Labels define the behaviour and rules of the traefik proxy for this container ####
       - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
@@ -68,7 +70,7 @@ services:
       - "traefik.http.routers.traefik.service=api@internal"
 
       - "traefik.http.routers.traefik.middlewares=basic-auth-global,mystrip"
-      - "traefik.http.middlewares.basic-auth-global.basicauth.users=${TRAEFIK_DASHBOARD_USER}"
+      - "traefik.http.middlewares.basic-auth-global.basicauth.usersfile=/run/secrets/trfk_usrpwd"
 
       #### set middlewares: stripprefix for dashboard
       # - "traefik.http.routers.traefik.middlewares=mystrip"
@@ -95,3 +97,7 @@ volumes:
     driver: local
   tfk_conf:
     driver: local
+
+secrets:
+  trfk_usrpwd:
+    environment: TRFK_USERPWD
