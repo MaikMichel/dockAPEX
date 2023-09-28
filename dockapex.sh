@@ -16,16 +16,9 @@ function usage() {
   echo "-----------------------------------------------------"
   echo
   echo "  command "
-  echo "    build  > builds only images"
-  echo "    start  > start images / containers "
-  echo "    run    > builds and start images / containers "
-  echo "    logs   > shows logs by executing logs -f "
-  echo "    list   > list services"
-  echo "    config > view compose files"
-  echo "    print  > print compose call"
-  echo "    stop   > stops services"
   echo "    clear  > removes all container and images, prunes allocated space"
-  echo
+  echo ""
+  docker-compose --help
   echo "-----------------------------------------------------"
 	echo "Canceled !!!"
   echo
@@ -33,7 +26,7 @@ function usage() {
 }
 
 # All Params are required
-if [[ $# -lt 1 ]]; then
+if [[ $# -lt 2 ]]; then
   echo_error "Missing arguments, see...\n"
   usage
 fi
@@ -76,14 +69,26 @@ fi
 
 if [[ "$ORDS" == true ]]; then
   DCKAPX_COMP_FILES+="-f ./ords/docker_compose.yml "
+
+  if [[ "$TRAEFIK" == true ]] && [[ "$TOMCAT" != true ]]; then
+    DCKAPX_COMP_FILES+="-f ./ords/traefik_compose.yml "
+  fi
 fi
 
 if [[ "$TOMCAT" == true ]]; then
   DCKAPX_COMP_FILES+="-f ./tomcat/docker_compose.yml "
+
+  if [[ "$TRAEFIK" == true ]]; then
+    DCKAPX_COMP_FILES+="-f ./tomcat/traefik_compose.yml "
+  fi
 fi
 
 if [[ "$AOP" == true ]]; then
   DCKAPX_COMP_FILES+="-f ./aop/docker_compose.yml "
+
+  if [[ "$TRAEFIK" == true ]]; then
+    DCKAPX_COMP_FILES+="-f ./aop/traefik_compose.yml "
+  fi
 fi
 
 if [[ "$TRAEFIK" == true ]]; then
@@ -97,22 +102,41 @@ fi
 shift
 DCKAPX_COMMAND="$@"
 
+function clear_containers() {
+  local arg=${1}
+  if [[ ${arg} == "-f" ]]; then
+    docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} down --volumes --rmi local
+    docker system prune
+  else
+
+    ask_with_yes_no "Shutdown all containers?"
+    if [[ $? -eq 0 ]]; then
+      docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} down
+
+      ask_with_yes_no "Remove volumes?"
+      if [[ $? -eq 0 ]]; then
+        docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} down --volumes
+      fi
+
+      ask_with_yes_no "Remove images?"
+      if [[ $? -eq 0 ]]; then
+        docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} down --rmi local
+      fi
+
+      ask_with_yes_no "Addionally prune system?"
+      if [[ $? -eq 0 ]]; then
+        docker system prune
+      fi
+    fi
+  fi
+}
+
 case ${1} in
   'clear')
-    docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} down
-    docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} down --volumes
-
-    while true; do
-      read -p "Remove images as well? y/n? " yn
-      case $yn in
-          [Yy]* )
-            docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} down --rmi all
-            break;
-          ;;
-          [Nn]* ) exit 1;;
-          * ) echo "Please answer yes or no.";;
-      esac
-    done
+    clear_containers ${2}
+    ;;
+  '-h'|'--help')
+    usage
     ;;
   *)
     echo "docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} ${DCKAPX_COMMAND}"

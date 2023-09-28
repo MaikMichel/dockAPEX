@@ -1,0 +1,20 @@
+services:
+
+  aop:
+    secrets:
+      - trfk_usrpwd
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.aop.rule=Host(`${TRAEFIK_DOMAIN}`) && PathPrefix(`/aop`)"
+      - "traefik.http.routers.aop.entrypoints=websecure"
+      - "traefik.http.routers.aop.tls.certresolver=myresolver"
+      - "traefik.http.routers.aop.tls: true"
+
+      - "traefik.http.routers.aop.middlewares=basic_auth,aopstrip"
+      - "traefik.http.middlewares.basic_auth.basicauth.usersfile=/run/secrets/trfk_usrpwd"
+      - "traefik.http.middlewares.aopstrip.stripprefix.prefixes=/aop"
+
+  traefik:
+    depends_on:
+      aop:
+        condition: service_started

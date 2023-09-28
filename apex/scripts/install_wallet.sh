@@ -3,8 +3,25 @@
 
 CONN_STRING_FILE="/opt/oracle/config.env"
 
-source ${CONN_STRING_FILE}
-SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
+if [[ -f $CONN_STRING_FILE ]]; then
+  source ${CONN_STRING_FILE}
+  DB_PASS=$(<"/run/secrets/db_pwd")
+
+  SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
+  if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
+    printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
+    SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
+  else
+    printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."
+    printf "%s%s\n"   "       " "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
+    exit 1
+  fi
+else
+  printf "\a%s%s\n" "ERROR: " "${CONN_STRING_FILE} has not added, create a file with following vars"
+  printf "\a%s%s\n" "       " "  DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME variables"
+  printf "\a%s%s\n" "       " "  and added as docker volume:"
+  exit 1
+fi
 
 
 # Info
@@ -114,14 +131,16 @@ set_apex_wallet_and_pwd() {
   echo "Set APEX Instance SSL Wallet"
   WALLET_PWD=$(cat /opt/oracle/oradata/wallet/_pwd.txt)
 
-  echo "begin" >set_apex_wallet.sql
+  echo "prompt set wallet instance parameters">set_apex_wallet.sql
+  echo "begin" >>set_apex_wallet.sql
   echo "  apex_instance_admin.set_parameter('WALLET_PATH','file:/opt/oracle/oradata/wallet');" >>set_apex_wallet.sql
   echo "  apex_instance_admin.set_parameter('WALLET_PWD','${WALLET_PWD}');" >>set_apex_wallet.sql
   echo "  commit;" >>set_apex_wallet.sql
   echo "end;" >>set_apex_wallet.sql
   echo "/" >>set_apex_wallet.sql
 
-  echo "exit" | sqlplus -L $SQLPLUS_ARGS @set_apex_wallet
+  echo "run sqlplus"
+  echo "exit" | sqlplus -L ${SQLPLUS_ARGS} @set_apex_wallet
 }
 
 

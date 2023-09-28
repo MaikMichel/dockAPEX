@@ -14,12 +14,12 @@ services:
     environment:
       - DCPAPX_PROJECT_NAME=${DCPAPX_PROJECT_NAME}
     secrets:
-      - db_pwd
+      - oracle_pwd
     container_name: apex
     restart: always
     depends_on:
-      database:
-        condition: service_healthy
+      - database
+        # condition: service_healthy
     volumes:
       - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
       - apx_imgs:/opt/oracle/images
@@ -32,15 +32,15 @@ services:
       retries: 45
       start_period: 5m
 
-  ords:
-    depends_on:
-      apex:
-        condition: service_healthy
+  # ords:
+  #   depends_on:
+  #     apex:
+  #       condition: service_healthy
 
 volumes:
   apx_imgs:
     driver: local
 
 secrets:
-  db_pwd:
+  oracle_pwd:
     environment: DB_PASS

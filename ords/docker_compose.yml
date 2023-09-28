@@ -8,9 +8,10 @@ services:
       args:
         - ORDS_FULL_VERSION=${ORDS_FULL_VERSION}
         - ORDS_VERSION=${ORDS_VERSION}
+        - ORDS_URL=${ORDS_URL}
     secrets:
       - ords_pwd
-      - db_pwd
+      - oracle_pwd
       - ddns_pwd
     container_name: ords
     ports:
@@ -26,14 +27,11 @@ services:
       - ords_dir:/opt/ords-${ORDS_VERSION}
     hostname: ords
     healthcheck:
-      # test: 'curl --fail -s http://localhost:${ORDS_PORT}/ords/ || exit 1'
       test: '/scripts/healtcheck_tomcat_${TOMCAT}.sh ${ORDS_PORT}'
       interval: 1m
       timeout: 30s
       retries: 10
       start_period: 5m
-
-
 
 volumes:
   ords_config:
@@ -46,7 +44,7 @@ volumes:
 secrets:
   ords_pwd:
     environment: ORDS_PASSWORD
-  db_pwd:
+  oracle_pwd:
     environment: DB_PASS
   ddns_pwd:
     environment: ORDS_DDNS_PASSWORD

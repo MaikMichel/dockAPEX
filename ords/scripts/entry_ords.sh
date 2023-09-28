@@ -13,7 +13,7 @@ function check_conn_definition() {
 
 
     ORDS_PASSWORD=$(<"/run/secrets/ords_pwd")
-    DB_PASS=$(<"/run/secrets/db_pwd")
+    DB_PASS=$(<"/run/secrets/oracle_pwd")
 
     if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
       printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
@@ -156,8 +156,8 @@ EOF
   fi
 
 
-  if [[ ${TOMCAT,,} == "true" ]]; then
-    # Add forceHTTPs, when TOMCAT Mode
+  if [[ ${TRAEFIK,,} == "true" ]]; then
+    # Add forceHTTPs, when TRAEFIK (Reverse Proxy) Mode
     SETTINGS_XML="${ORDS_CONF_DIR}/global/settings.xml"
     FORCS_HTML='<entry key="security.forceHTTPS">true</entry>'
     sed -i "/<\/properties>/i ${FORCS_HTML}" "${SETTINGS_XML}"
@@ -211,8 +211,6 @@ function run_ords() {
 
 
 function run_script() {
-  export _JAVA_OPTIONS="-Xms1126M -Xmx1126M"
-
   if [ -e $ORDS_CONF_DIR/databases/default/pool.xml ]; then
     # we have a configuration, so lets check if there is something to do
     if [ -e "${CONN_STRING_FILE}" ]; then

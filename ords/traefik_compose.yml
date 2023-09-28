@@ -1,0 +1,19 @@
+services:
+
+  ords:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tomcat.rule=Host(`${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.tomcat.entrypoints=websecure"
+      - "traefik.http.routers.tomcat.tls.certresolver=myresolver"
+      # the middleware 'add-context' must be defined so that the regex rules can be attached to it
+      - "traefik.http.routers.tomcat.middlewares=add-context"
+
+      # here is the logic to force root domain to redirect to default url
+      - "traefik.http.middlewares.add-context.redirectregex.regex=^https:\\/\\/([^\\/]+)\\/?$$"
+      - "traefik.http.middlewares.add-context.redirectregex.replacement=https://$$1/${TRAEFIK_DEFAULT_ROUTE}"
+
+  traefik:
+    depends_on:
+      ords:
+        condition: service_started

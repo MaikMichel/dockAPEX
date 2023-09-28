@@ -1,35 +1,5 @@
 services:
 
-  # TODO: das hier nur wenn tomcat mode
-  tomcat:
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.tomcat.rule=Host(`${TRAEFIK_DOMAIN}`)"
-      - "traefik.http.routers.tomcat.entrypoints=websecure"
-      - "traefik.http.routers.tomcat.tls.certresolver=myresolver"
-      # the middleware 'add-context' must be defined so that the regex rules can be attached to it
-      - "traefik.http.routers.tomcat.middlewares=add-context"
-
-      # here is the logic to force root domain to redirect to default url
-      - "traefik.http.middlewares.add-context.redirectregex.regex=^https:\\/\\/([^\\/]+)\\/?$$"
-      - "traefik.http.middlewares.add-context.redirectregex.replacement=https://$$1/${TRAEFIK_DEFAULT_ROUTE}"
-
-  # TODO: brauchen hier noch den ords mode
-
-
-  # TODO: AOP nur wenn true
-  aop:
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.aop.rule=Host(`${TRAEFIK_DOMAIN}`) && PathPrefix(`/aop`)"
-      - "traefik.http.routers.aop.entrypoints=websecure"
-      - "traefik.http.routers.aop.tls.certresolver=myresolver"
-      - "traefik.http.routers.aop.tls: true"
-
-      - "traefik.http.routers.aop.middlewares=basic_auth,aopstrip"
-      - "traefik.http.middlewares.basic_auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}"
-      - "traefik.http.middlewares.aopstrip.stripprefix.prefixes=/aop"
-
   ################################################
   ####        Traefik Proxy Setup           #####
   ###############################################
@@ -63,6 +33,7 @@ services:
     secrets:
       - trfk_usrpwd
     labels:
+      - "dockapex_config=${DCPAPX_PROJECT_NAME}"
     #### Labels define the behaviour and rules of the traefik proxy for this container ####
       - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
       - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DOMAIN}`) && (PathPrefix(`/traefik`) || PathPrefix(`/api`))" # <== Setting the domain for the dashboard
@@ -86,11 +57,6 @@ services:
       - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-    depends_on:
-      tomcat:
-        condition: service_healthy
-      aop:
-        condition: service_started
 
 volumes:
   tfk_logs:

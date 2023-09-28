@@ -1,6 +1,9 @@
 services:
   # Official latest AOP Version
   aop:
+    image: aop_latest:${DCPAPX_PROJECT_NAME}
+    labels:
+      - "dockapex_config=${DCPAPX_PROJECT_NAME}"
     build:
       context: ../aop
     container_name: aop
