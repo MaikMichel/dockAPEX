@@ -3,8 +3,9 @@
 ## VARS
 CONN_STRING_FILE="/opt/oracle/config.env"
 APEX_IMAGE_DIR="/opt/oracle/images"
+APEX_HOME="/opt/oracle/apex-${APEX_VERSION}/apex"
 
-printf "%s%s\n" "INFO : " "This container will start a service running ORDS $ORDS_VERSION."
+printf "%s%s\n" "INFO : " "This container will start a service running ORDS ${ORDS_VERSION}."
 
 ### Check connection vars inside file
 function check_conn_definition() {
@@ -87,16 +88,30 @@ function install_ords() {
 
   SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
 
-  sqlplus /nolog << EOF
-    conn ${SQLPLUS_ARGS}
+  if [[ "$APEX" == true ]]; then
+    if [[ -d ${APEX_HOME} ]]; then
+      printf "%s%s\n" "INFO : " "${APEX_HOME} found"
+      old_dir=$(pwd)
 
-    Prompt setting PWD for APEX_PUBLIC_USER
-    alter user APEX_PUBLIC_USER identified by "$ORDS_PASSWORD" account unlock;
+      cd ${APEX_HOME}
+      printf "%s%s\n" "INFO : " "Config APEX_PUBLIC_USER"
+      sqlplus /nolog << EOF
+        conn ${SQLPLUS_ARGS}
 
-    Prompt calling apex_rest_config_core
-    @apex_rest_config_core @ $ORDS_PASSWORD $ORDS_PASSWORD
+        Prompt setting PWD for APEX_PUBLIC_USER
+        alter user APEX_PUBLIC_USER identified by "$ORDS_PASSWORD" account unlock;
+
+        Prompt calling apex_rest_config_core
+        @apex_rest_config_core @ $ORDS_PASSWORD $ORDS_PASSWORD
 
 EOF
+
+      cd "${old_dir}"
+    else
+      printf "%s%s\n" "ERROR : " "${APEX_HOME} not found"
+      exit 1
+    fi
+  fi
 
   ${ORDS_DIR}bin/ords --config ${ORDS_CONF_DIR} install \
       --log-folder ${ORDS_CONF_DIR}/logs/${DB_NAME} \
@@ -179,7 +194,7 @@ function run_ords() {
   fi
 
   # ping DYNDNS to set IP
-  if [[ -n ${ORDS_DDNS_USER} ]] && [[ -n ${ORDS_DDNS_URL} ]] ; then
+  if [[ "$ORDS_DDNS" == true ]] && [[ -n ${ORDS_DDNS_USER} ]] && [[ -n ${ORDS_DDNS_URL} ]] ; then
     if [[ -f "/run/secrets/ddns_pwd" ]]; then
       ORDS_DDNS_PASSWORD=$(<"/run/secrets/ddns_pwd")
       printf "%s%s\n" "INFO : " "DynDNS Configuration found, curling to: ${ORDS_DDNS_URL}"

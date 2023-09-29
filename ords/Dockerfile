@@ -13,7 +13,8 @@ RUN microdnf install -y java-17-openjdk
 # Define build Args
 ARG ORDS_FULL_VERSION=${ORDS_FULL_VERSION} \
     ORDS_VERSION=${ORDS_VERSION} \
-    ORDS_URL=${ORDS_URL}
+    ORDS_URL=${ORDS_URL} \
+    APEX_VERSION=${APEX_VERSION}
 
 # Download binary
 ADD ${ORDS_URL} /opt/ords-${ORDS_VERSION}/
@@ -22,7 +23,8 @@ ADD ${ORDS_URL} /opt/ords-${ORDS_VERSION}/
 ENV ORDS_FULL_VERSION=${ORDS_FULL_VERSION} \
     ORDS_VERSION=${ORDS_VERSION} \
     ORDS_DIR=/opt/ords-${ORDS_VERSION}/ \
-    ORDS_CONF_DIR="/etc/ords/config"
+    ORDS_CONF_DIR=/etc/ords/config \
+    APEX_VERSION=${APEX_VERSION}
 
 ENV ORDS_CONFIG=${ORDS_CONF_DIR} \
     JAVA_OPTS="-Dconfig.url=${ORDS_CONF_DIR} -Xms1024M -Xmx1024M"

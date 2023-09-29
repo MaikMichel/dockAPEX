@@ -15,14 +15,16 @@ services:
       - DCPAPX_PROJECT_NAME=${DCPAPX_PROJECT_NAME}
     secrets:
       - oracle_pwd
+      - smtp_pwd
     container_name: apex
     restart: always
     depends_on:
-      - database
-        # condition: service_healthy
+      database:
+        condition: service_healthy
     volumes:
       - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
       - apx_imgs:/opt/oracle/images
+      - apx_dir:/opt/oracle/apex-${APEX_VERSION}
       - db_store:/opt/oracle/oradata
     hostname: apex
     healthcheck:
@@ -32,15 +34,22 @@ services:
       retries: 45
       start_period: 5m
 
-  # ords:
-  #   depends_on:
-  #     apex:
-  #       condition: service_healthy
+  ords:
+    depends_on:
+      apex:
+        condition: service_healthy
+    volumes:
+      - apx_imgs:/opt/oracle/images
+      - apx_dir:/opt/oracle/apex-${APEX_VERSION}
 
 volumes:
   apx_imgs:
+    driver: local
+  apx_dir:
     driver: local
 
 secrets:
   oracle_pwd:
     environment: DB_PASS
+  smtp_pwd:
+    environment: SMTP_PASSWORD

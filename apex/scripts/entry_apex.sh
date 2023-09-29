@@ -16,6 +16,9 @@ function check_conn_definition() {
     source ${CONN_STRING_FILE}
 
     DB_PASS=$(<"/run/secrets/oracle_pwd")
+    if [[ "$APEX_SMTP" == true ]]; then
+      APEX_SMTP_PASSWORD=$(<"/run/secrets/smtp_pwd")
+    fi
 
     if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
       printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
@@ -94,7 +97,7 @@ EOF
 }
 
 function create_apex_tablespace(){
-  if [[ ${APEX_SPACE,,} == "true" ]]; then
+  if [[ ${APEX_CREATE_TSPACE,,} == "true" ]]; then
     cd ${APEX_HOME}
     printf "%s%s\n" "INFO : " "Check if tablespace ${APEX_SPACE_NAME} exists"
 
@@ -106,7 +109,7 @@ function create_apex_tablespace(){
       printf "%s%s\n" "INFO : " "Creating tablespace ${APEX_SPACE_NAME} "
       sqlplus -S /nolog << EOF
         conn ${SQLPLUS_ARGS}
-        CREATE TABLESPACE ${APEX_SPACE_NAME} DATAFILE '${APEX_SPACE_PATH}' SIZE 400M AUTOEXTEND ON NEXT 10M;
+        CREATE TABLESPACE ${APEX_SPACE_NAME} DATAFILE '${APEX_CREATE_TSPACE_PATH}' SIZE 400M AUTOEXTEND ON NEXT 10M;
         exit
 EOF
     fi
@@ -167,12 +170,12 @@ EOF
 function install_apex() {
   if [[ -f ${APEX_HOME}/apexins.sql ]]; then
     printf "%s%s\n" "INFO : " "Installing APEX on your DB please this will take a while."
-    printf "%s%s\n" "INFO : " "You can check the logs by running the following command in a new terminal window:"
 
     cd ${APEX_HOME}
-    sqlplus /nologe<< EOF
+    sqlplus /nolog<< EOF
     conn ${SQLPLUS_ARGS}
     @apexins ${APEX_SPACE_NAME} ${APEX_SPACE_NAME} TEMP /i/
+
 EOF
 
     RESULT=$?
@@ -249,135 +252,147 @@ function config_apex() {
       cd ${APEX_HOME}
       sqlplus -S ${SQLPLUS_ARGS} <<EOF
 
-      set define '^'
-      set concat on
-      set concat .
-      set verify off
+        set define '^'
+        set concat on
+        set concat .
+        set verify off
 
-      @@core/scripts/set_appun.sql
-      Prompt setting schema to ^APPUN.
-      alter session set current_schema = ^APPUN.;
+        @@core/scripts/set_appun.sql
+        Prompt setting schema to ^APPUN.
+        alter session set current_schema = ^APPUN.;
 
-      Prompt setting ACLS
-      -- From Joels blog: http://joelkallman.blogspot.ca/2017/05/apex-and-ords-up-and-running-in2-steps.html
-      declare
-        l_apex_schema varchar2(100);
-      begin
-        for c1 in (select schema
-                     from dba_registry
-                    where comp_id = 'APEX')
-        loop
-          l_apex_schema := c1.schema;
-        end loop;
-
-        dbms_network_acl_admin.append_host_ace(host           => '*',
-                                               ace            => xs\$ace_type(privilege_list => xs\$name_list('connect'),
-                                               principal_name => l_apex_schema,
-                                               principal_type => xs_acl.ptype_db));
-        commit;
-      end;
-      /
-
-      PROMPT  =============================================================================
-      PROMPT  ==   CLEAR ACLs
-      PROMPT  =============================================================================
-      PROMPT
-      DECLARE
-        v_check number(1);
-      BEGIN
+        Prompt setting ACLS
+        -- From Joels blog: http://joelkallman.blogspot.ca/2017/05/apex-and-ords-up-and-running-in2-steps.html
+        declare
+          l_apex_schema varchar2(100);
         begin
-          select 1
-            into v_check
-            from dba_network_acls
-          where acl = '/sys/acls/smtp-permissions-dockAPEX.xml';
+          for c1 in (select schema
+                      from dba_registry
+                      where comp_id = 'APEX')
+          loop
+            l_apex_schema := c1.schema;
+          end loop;
 
-          dbms_network_acl_admin.drop_acL(acl => 'smtp-permissions-dockAPEX.xml');
-        exception
-          when no_data_found then
-            null;
+          dbms_network_acl_admin.append_host_ace(host           => '*',
+                                                ace            => xs\$ace_type(privilege_list => xs\$name_list('connect'),
+                                                principal_name => l_apex_schema,
+                                                principal_type => xs_acl.ptype_db));
+          commit;
         end;
+        /
 
-        commit;
-      END;
-      /
+        PROMPT  =============================================================================
+        PROMPT  ==   CLEAR ACLs
+        PROMPT  =============================================================================
+        PROMPT
+        DECLARE
+          v_check number(1);
+        BEGIN
+          begin
+            select 1
+              into v_check
+              from dba_network_acls
+            where acl = '/sys/acls/smtp-permissions-dockAPEX.xml';
 
-      PROMPT  =============================================================================
-      PROMPT  ==   SETUP ACL SMTP
-      PROMPT  =============================================================================
-      PROMPT
+            dbms_network_acl_admin.drop_acL(acl => 'smtp-permissions-dockAPEX.xml');
+          exception
+            when no_data_found then
+              null;
+          end;
 
-      declare
-        l_apex_schema varchar2(100);
-      begin
-        for c1 in (select schema
-                     from sys.dba_registry
-                    where comp_id = 'APEX')
-        loop
-          l_apex_schema := c1.schema;
-        end loop;
+          commit;
+        END;
+        /
 
-        dbms_network_acl_admin.create_acl (acl         => 'smtp-permissions-dockAPEX.xml',
-                                           description => 'Permissions for smtp',
-                                           principal   => l_apex_schema,
-                                           is_grant    => true,
-                                           privilege   => 'connect');
+        PROMPT  =============================================================================
+        PROMPT  ==   SETUP ACL SMTP
+        PROMPT  =============================================================================
+        PROMPT
 
-        dbms_network_acl_admin.assign_acl (acl        => 'smtp-permissions-dockAPEX.xml',
-                                           host       => '*',
-                                           lower_port => 25,
-                                           upper_port => 25);
+        declare
+          l_apex_schema varchar2(100);
+        begin
+          for c1 in (select schema
+                      from sys.dba_registry
+                      where comp_id = 'APEX')
+          loop
+            l_apex_schema := c1.schema;
+          end loop;
 
-        commit;
-      end;
-      /
+          dbms_network_acl_admin.create_acl (acl         => 'smtp-permissions-dockAPEX.xml',
+                                            description => 'Permissions for smtp',
+                                            principal   => l_apex_schema,
+                                            is_grant    => true,
+                                            privilege   => 'connect');
 
-      PROMPT  =============================================================================
-      PROMPT  ==   SETUP INTERNAL
-      PROMPT  =============================================================================
-      PROMPT
-      begin
-        apex_util.set_workspace(p_workspace => 'internal');
-        apex_util.create_user(p_user_name                    => 'ADMIN',
-                              p_email_address                => '${APEX_INTERNAL_MAIL}',
-                              p_web_password                 => 'Welcome_01!',
-                              p_change_password_on_first_use => 'Y' );
-        commit;
-      end;
-      /
+          dbms_network_acl_admin.assign_acl (acl        => 'smtp-permissions-dockAPEX.xml',
+                                            host       => '*',
+                                            lower_port => 25,
+                                            upper_port => 25);
 
-      PROMPT  =============================================================================
-      PROMPT  ==   SETUP SMTP
-      PROMPT  =============================================================================
-      PROMPT INTERNAL_MAIL:     ${APEX_INTERNAL_MAIL}
-      PROMPT SMTP_HOST_ADDRESS: ${APEX_SMTP_HOST_ADDRESS}
-      PROMPT SMTP_FROM:         ${APEX_SMTP_FROM}
-      PROMPT SMTP_USERNAME:     ${APEX_SMTP_USERNAME}
-      PROMPT  =============================================================================
-      BEGIN
+          commit;
+        end;
+        /
 
-        apex_instance_admin.set_parameter('SMTP_HOST_ADDRESS', '${APEX_SMTP_HOST_ADDRESS}');
-        apex_instance_admin.set_parameter('SMTP_FROM',         '${APEX_SMTP_FROM}');
-        apex_instance_admin.set_parameter('SMTP_USERNAME',     '${APEX_SMTP_USERNAME}');
-        apex_instance_admin.set_parameter('SMTP_PASSWORD',     '${APEX_SMTP_PASSWORD}');
-
-        commit;
-      END;
-      /
-
-      PROMPT  =============================================================================
-      PROMPT  ==   SEND NOTIFICATION
-      PROMPT  =============================================================================
-      BEGIN
-        apex_mail.send(p_from => '${APEX_SMTP_FROM}'
-                      ,p_to   => '${APEX_INTERNAL_MAIL}'
-                      ,p_subj => 'Congratulations, dockAPEX successfully installed'
-                      ,p_body => 'Oracle APEX has successfully installed to dockAPEX project: ${DCPAPX_PROJECT_NAME}');
-
-        apex_mail.push_queue();
-      END;
-      /
+        PROMPT  =============================================================================
+        PROMPT  ==   SETUP INTERNAL
+        PROMPT  =============================================================================
+        PROMPT
+        begin
+          apex_util.set_workspace(p_workspace => 'internal');
+          apex_util.create_user(p_user_name                    => 'ADMIN',
+                                p_email_address                => '${APEX_INTERNAL_MAIL}',
+                                p_web_password                 => 'Welcome_01!',
+                                p_change_password_on_first_use => 'Y' );
+          commit;
+        end;
+        /
 
 EOF
+
+
+      if [[ "$APEX_SMTP" == true ]]; then
+        sqlplus -S ${SQLPLUS_ARGS} <<EOF
+
+        set define '^'
+        set concat on
+        set concat .
+        set verify off
+
+        PROMPT  =============================================================================
+        PROMPT  ==   SETUP SMTP
+        PROMPT  =============================================================================
+        PROMPT INTERNAL_MAIL:     ${APEX_INTERNAL_MAIL}
+        PROMPT SMTP_HOST_ADDRESS: ${APEX_SMTP_HOST_ADDRESS}
+        PROMPT SMTP_FROM:         ${APEX_SMTP_FROM}
+        PROMPT SMTP_USERNAME:     ${APEX_SMTP_USERNAME}
+        PROMPT  =============================================================================
+        BEGIN
+          apex_util.set_workspace(p_workspace => 'internal');
+          apex_instance_admin.set_parameter('SMTP_HOST_ADDRESS', '${APEX_SMTP_HOST_ADDRESS}');
+          apex_instance_admin.set_parameter('SMTP_FROM',         '${APEX_SMTP_FROM}');
+          apex_instance_admin.set_parameter('SMTP_USERNAME',     '${APEX_SMTP_USERNAME}');
+          apex_instance_admin.set_parameter('SMTP_PASSWORD',     '${APEX_SMTP_PASSWORD}');
+
+          commit;
+        END;
+        /
+
+        PROMPT  =============================================================================
+        PROMPT  ==   SEND NOTIFICATION
+        PROMPT  =============================================================================
+        BEGIN
+          apex_mail.send(p_from => '${APEX_SMTP_FROM}'
+                        ,p_to   => '${APEX_INTERNAL_MAIL}'
+                        ,p_subj => 'Congratulations, dockAPEX successfully installed'
+                        ,p_body => 'Oracle APEX has successfully installed to dockAPEX project: ${DCPAPX_PROJECT_NAME}');
+
+          apex_mail.push_queue();
+        END;
+        /
+
+EOF
+      fi
 
       RESULT=$?
       if [ ${RESULT} -eq 0 ] ; then

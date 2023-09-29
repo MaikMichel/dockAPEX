@@ -13,6 +13,8 @@ services:
       - ords_pwd
       - oracle_pwd
       - ddns_pwd
+    environment:
+      - APEX_VERSION=${APEX_VERSION}
     container_name: ords
     ports:
       - 8080:${ORDS_PORT}
@@ -23,7 +25,6 @@ services:
     volumes:
       - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
       - ords_config:/etc/ords/config
-      - apx_imgs:/opt/oracle/images
       - ords_dir:/opt/ords-${ORDS_VERSION}
     hostname: ords
     healthcheck:
@@ -38,8 +39,7 @@ volumes:
     driver: local
   ords_dir:
     driver: local
-  apx_imgs:
-    driver: local
+
 
 secrets:
   ords_pwd:

@@ -5,7 +5,7 @@ CONN_STRING_FILE="/opt/oracle/config.env"
 
 if [[ -f $CONN_STRING_FILE ]]; then
   source ${CONN_STRING_FILE}
-  DB_PASS=$(<"/run/secrets/db_pwd")
+  DB_PASS=$(<"/run/secrets/oracle_pwd")
 
   SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
   if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
