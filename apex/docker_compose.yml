@@ -34,14 +34,6 @@ services:
       retries: 45
       start_period: 5m
 
-  ords:
-    depends_on:
-      apex:
-        condition: service_healthy
-    volumes:
-      - apx_imgs:/opt/oracle/images
-      - apx_dir:/opt/oracle/apex-${APEX_VERSION}
-
 volumes:
   apx_imgs:
     driver: local

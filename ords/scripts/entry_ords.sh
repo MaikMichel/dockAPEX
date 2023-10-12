@@ -2,7 +2,7 @@
 
 ## VARS
 CONN_STRING_FILE="/opt/oracle/config.env"
-APEX_IMAGE_DIR="/opt/oracle/images"
+ORDS_IMAGE_DIR="/opt/oracle/images"
 APEX_HOME="/opt/oracle/apex-${APEX_VERSION}/apex"
 
 printf "%s%s\n" "INFO : " "This container will start a service running ORDS ${ORDS_VERSION}."
@@ -12,12 +12,18 @@ function check_conn_definition() {
   if [[ -f $CONN_STRING_FILE ]]; then
     source $CONN_STRING_FILE
 
-
-    ORDS_PASSWORD=$(<"/run/secrets/ords_pwd")
+    # read DB password
     DB_PASS=$(<"/run/secrets/oracle_pwd")
+
+    # read ORDS password
+    ORDS_PASSWORD=$(<"/run/secrets/ords_pwd")
 
     if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
       printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
+      SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
+      if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
+        SQLPLUS_ARGS2="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB} as sysdba"
+      fi
     else
       printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."
       printf "%s%s\n"   "       " "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
@@ -70,11 +76,14 @@ EOF
   done
 }
 
-function testDB() {
+function check_database() {
+  # check if configuration vars are present
   check_conn_definition
 
+  # let's check the connection itself
   try_connect ${DB_NAME}
 
+  # when a second PDB is configured, let's check that too
   if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
     try_connect ${APEX_SECND_PDB_NAME}
   fi
@@ -84,33 +93,21 @@ function install_ords() {
   printf "%s%s\n" "INFO : " "========================================"
   printf "%s%s\n" "INFO : " "========================================"
   printf "%s%s\n" "INFO : " "========================================"
-  printf "%s%s\n" "INFO : " "Preparing ORDS - ${DB_NAME}"
+  printf "%s%s\n" "INFO : " ""
 
-  SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
-
+  APEX_PROXIED=""
   if [[ "$APEX" == true ]]; then
-    if [[ -d ${APEX_HOME} ]]; then
-      printf "%s%s\n" "INFO : " "${APEX_HOME} found"
-      old_dir=$(pwd)
+    printf "%s%s\n" "INFO : " "Config APEX_PUBLIC_USER"
 
-      cd ${APEX_HOME}
-      printf "%s%s\n" "INFO : " "Config APEX_PUBLIC_USER"
-      sqlplus /nolog << EOF
-        conn ${SQLPLUS_ARGS}
+    sqlplus /nolog << EOF
+      conn ${SQLPLUS_ARGS}
 
-        Prompt setting PWD for APEX_PUBLIC_USER
-        alter user APEX_PUBLIC_USER identified by "$ORDS_PASSWORD" account unlock;
-
-        Prompt calling apex_rest_config_core
-        @apex_rest_config_core @ $ORDS_PASSWORD $ORDS_PASSWORD
+      Prompt setting PWD for APEX_PUBLIC_USER
+      alter user APEX_PUBLIC_USER account unlock;
 
 EOF
 
-      cd "${old_dir}"
-    else
-      printf "%s%s\n" "ERROR : " "${APEX_HOME} not found"
-      exit 1
-    fi
+    APEX_PROXIED="--gateway-mode proxied --gateway-user APEX_PUBLIC_USER"
   fi
 
   ${ORDS_DIR}bin/ords --config ${ORDS_CONF_DIR} install \
@@ -121,9 +118,7 @@ EOF
       --db-servicename ${DB_NAME} \
       --feature-db-api true \
       --feature-rest-enabled-sql true \
-      --feature-sdw true \
-      --gateway-mode proxied \
-      --gateway-user APEX_PUBLIC_USER \
+      --feature-sdw true ${APEX_PROXIED} \
       --proxy-user \
       --password-stdin <<EOF
 ${DB_PASS}
@@ -132,23 +127,18 @@ EOF
 
 
   if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
-    printf "%s%s\n" "INFO : " "========================================"
-    printf "%s%s\n" "INFO : " "========================================"
-    printf "%s%s\n" "INFO : " "========================================"
-    printf "%s%s\n" "INFO : " "Preparing ORDS - ${APEX_SECND_PDB_NAME}"
+    if [[ "$APEX" == true ]]; then
+      printf "%s%s\n" "INFO : " "Config APEX_PUBLIC_USER in second PDB"
 
-    SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB_NAME} as sysdba"
-    sqlplus /nolog << EOF
-    conn ${SQLPLUS_ARGS}
+      sqlplus /nolog << EOF
+      conn ${SQLPLUS_ARGS2}
 
-    Prompt setting PWD for APEX_PUBLIC_USER
-    alter user APEX_PUBLIC_USER identified by "$ORDS_PASSWORD" account unlock;
-
-    Prompt calling apex_rest_config_core
-    @apex_rest_config_core @ $ORDS_PASSWORD $ORDS_PASSWORD
+      Prompt setting PWD for APEX_PUBLIC_USER
+      alter user APEX_PUBLIC_USER account unlock;
 
 EOF
 
+    fi
 
     ${ORDS_DIR}bin/ords --config ${ORDS_CONF_DIR} install \
           --log-folder ${ORDS_CONF_DIR}/logs/${APEX_SECND_PDB_NAME} \
@@ -159,9 +149,7 @@ EOF
           --db-servicename ${APEX_SECND_PDB_NAME} \
           --feature-db-api true \
           --feature-rest-enabled-sql true \
-          --feature-sdw true \
-          --gateway-mode proxied \
-          --gateway-user APEX_PUBLIC_USER \
+          --feature-sdw true ${APEX_PROXIED} \
           --proxy-user \
           --password-stdin <<EOF
 ${DB_PASS}
@@ -179,6 +167,59 @@ EOF
   fi
 }
 
+function check_ords_version() {
+  # check if ORDS is installed and what version is present
+  sqlplus -s -l /nolog << EOF > /tmp/ords_version 2> /dev/null
+  conn ${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba
+  SET LINESIZE 20000 TRIM ON TRIMSPOOL ON
+  SET PAGESIZE 0
+  select substr(version, 1, instr(version, '.', 1, 3)-1) as version
+    from ords_metadata.ords_version;
+EOF
+
+  # Get RPM installed version
+  YEAR=$(echo $ORDS_VERSION | cut -d"." -f1)
+  QTR=$(echo $ORDS_VERSION | cut -d"." -f2)
+  PATCH=$(echo $ORDS_VERSION| cut -d"." -f3)
+
+  # Get DB installed version
+  ORDS_DB_VERSION=$(cat /tmp/ords_version|grep [0-9][0-9].[1-5].[0-9] |sed '/^$/d'|sed 's/ //g')
+  DB_YEAR=$(echo $ORDS_DB_VERSION | cut -d"." -f1)
+  DB_QTR=$(echo $ORDS_DB_VERSION | cut -d"." -f2)
+  DB_PATCH=$(echo $ORDS_DB_VERSION | cut -d"." -f3)
+
+  grep "SQL Error" /tmp/ords_version > /dev/null
+  RESULT=$?
+
+  if [[ ${RESULT} -eq 0 ]]; then
+    printf "\a%s%s\n" "ERROR: " "Please validate the database status."
+    grep "SQL Error" /tmp/ords_version
+    exit 1
+  fi
+
+  if [[ -n "$ORDS_DB_VERSION" ]]; then
+    # Validate if an upgrade needed
+    if [[ "$ORDS_DB_VERSION" = "$ORDS_VERSION" ]]; then
+      printf "%s%s\n" "INFO : " "ORDS $ORDS_VERSION is already installed in your database."
+      INS_STATUS="INSTALLED"
+    elif [[ $DB_YEAR -gt $YEAR ]]; then
+      printf "\a%s%s\n" "ERROR: " "A newer ORDS version ($ORDS_DB_VERSION) is already installed in your database. The ORDS version in this container is ${ORDS_VERSION}. Stopping the container."
+      exit 1
+    elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -gt $QTR ]]; then
+      printf "\a%s%s\n" "ERROR: " "A newer ORDS version ($ORDS_DB_VERSION) is already installed in your database. The ORDS version in this container is ${ORDS_VERSION}. Stopping the container."
+      exit 1
+    elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -eq $QTR ]] && [[ $DB_PATCH -gt $PATCH ]]; then
+      printf "\a%s%s\n" "ERROR: " "A newer ORDS version ($ORDS_DB_VERSION) is already installed in your database. The ORDS version in this container is ${ORDS_VERSION}. Stopping the container."
+      exit 1
+    else
+      printf "%s%s\n" "INFO : " "Your have installed ORDS ($ORDS_DB_VERSION) on you database but will be upgraded to ${ORDS_VERSION}."
+      INS_STATUS="UPGRADE"
+    fi
+  else
+    printf "%s%s\n" "INFO : " "ORDS is not installed on your database."
+    INS_STATUS="FRESH"
+  fi
+}
 
 function run_ords() {
   # ords_entrypoint_dir
@@ -205,52 +246,74 @@ function run_ords() {
   # Start serving or let TOMCAT to that
   if [[ ${TOMCAT,,} != "true" ]]; then
     printf "\a%s%s\n" "INFO : " "ORDS will serve ..."
-    echo "Mode for ORDS = 'ORDS'" > "${APEX_IMAGE_DIR}/ords_mode.txt"
+
+    [[ -d ${ORDS_IMAGE_DIR} ]] || mkdir -p ${ORDS_IMAGE_DIR}
+    echo "Mode for ORDS = 'ORDS'" > "${ORDS_IMAGE_DIR}/ords_mode.txt"
 
     export CERT_FILE="$ORDS_CONF_DIR/ssl/cert.crt"
     export KEY_FILE="$ORDS_CONF_DIR/ssl/key.key"
 
-    ORDS_IMAGE_DIR=${APEX_IMAGE_DIR}
+    ORDS_IMAGE_ARG="--apex-images ${ORDS_IMAGE_DIR}"
 
     if [ -e ${CERT_FILE} ] && [ -e ${KEY_FILE} ]
     then
-      ${ORDS_DIR}bin/ords --config $ORDS_CONF_DIR serve --port 8080 --apex-images ${ORDS_IMAGE_DIR} --secure --certificate ${CERT_FILE} --key  ${KEY_FILE}
+      ${ORDS_DIR}bin/ords --config $ORDS_CONF_DIR serve --port 8080 ${ORDS_IMAGE_ARG} --secure --certificate ${CERT_FILE} --key  ${KEY_FILE}
     else
-      ${ORDS_DIR}bin/ords --config $ORDS_CONF_DIR serve --port 8080 --apex-images ${ORDS_IMAGE_DIR}
+      ${ORDS_DIR}bin/ords --config $ORDS_CONF_DIR serve --port 8080 ${ORDS_IMAGE_ARG}
     fi
   else
     printf "\a%s%s\n" "INFO : " "Tomcat for the win ..."
-    echo "Mode for ORDS = 'TOMCAT'" > "${APEX_IMAGE_DIR}/ords_mode.txt"
+    echo "Mode for ORDS = 'TOMCAT'" > "${ORDS_IMAGE_DIR}/ords_mode.txt"
   fi
 }
 
+function unpack_ords() {
+  # check if ORDS_DIR exists
+  [[ -d ${ORDS_DIR} ]] || mkdir -p ${ORDS_DIR}
+
+  cd ${ORDS_DIR}
+
+  # check if FILE exists
+  if [[ -f "ords-${ORDS_FULL_VERSION}.zip" ]]; then
+    printf "%s%s\n" "INFO : " "ords-${ORDS_FULL_VERSION}.zip"
+    unzip -q ords-${ORDS_FULL_VERSION}.zip
+    rm ords-${ORDS_FULL_VERSION}.zip
+    chmod +x bin/ords
+  fi
+
+  if [[ -f "apex_patch.zip" ]]; then
+    printf "%s%s\n" "INFO : " "unzipping apex_patch.zip"
+    unzip -q "apex_patch.zip" -d "patchset"
+    rm "apex_patch.zip"
+  fi
+}
 
 function run_script() {
-  if [ -e $ORDS_CONF_DIR/databases/default/pool.xml ]; then
-    # we have a configuration, so lets check if there is something to do
-    if [ -e "${CONN_STRING_FILE}" ]; then
-      ## check connection
-      testDB
-
-      ## install
-      printf "\a%s%s\n" "WARN : " "The container will start with the detected configuration..."
-      run_ords
-    else
-      printf "\a%s%s\n" "WARN : " "A conn_string file has not been provided, but a mounted configuration has been detected in /etc/ords/config."
-      printf "\a%s%s\n" "WARN : " "The container will start with the detected configuration."
-      run_ords
-    fi
+  # check if we have tu unzip
+  if [[ ! -d "${ORDS_DIR}bin" ]]; then
+    printf "%s%s\n" "INFO : " "ORDS Directory not found"
+    unpack_ords;
   else
-    # No config file so we try
-    if [ -e $CONN_STRING_FILE ]; then
-      testDB
+    printf "%s%s\n" "INFO : " "ORDS Directory exists"
+  fi
 
-      # if [ "${IGNORE_APEX}" == "TRUE" ]; then
-      #   printf "\a%s%s\n" "WARN : " "The IGNORE_APEX variable is TRUE, Oracle APEX will not be Installed, Upgraded or Configured on your Database"
-      # else
-      #   apex
-      # fi
-      install_ords
+  # Did we already configure ORDS?
+  if [ -e $ORDS_CONF_DIR/databases/default/pool.xml ]; then
+    printf "\a%s%s\n" "INFO : " "Running ORDS with configuration found in $ORDS_CONF_DIR/databases/default/pool.xml"
+    run_ords
+  else
+    # Not configured yet, so we have to
+    if [ -e $CONN_STRING_FILE ]; then
+      # check connection
+      check_database
+
+      # check ORDS Installation
+      check_ords_version
+
+      # install or upgrade when needed
+      if [[ ${INS_STATUS} == "FRESH" ]] || [[ ${INS_STATUS} == "UPGRADE" ]]; then
+        install_ords
+      fi
 
       run_ords
     else
@@ -259,7 +322,8 @@ function run_script() {
   fi
 
 }
+# execute everything we need
 run_script
 
-
+# just do nothing, otherwise container will stop
 tail -f /dev/null

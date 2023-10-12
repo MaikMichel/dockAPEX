@@ -1,8 +1,7 @@
 #!/bin/bash
 
 ## VARS
-
-CONN_STRING_FILE="/opt/oracle/config.env"
+CONF_FILE="/opt/oracle/config.env"
 
 APEX_HOME="${APEX_DIR}apex"
 APEX_IMAGES="/opt/oracle/images"
@@ -10,12 +9,15 @@ PSET_HOME="${APEX_DIR}patchset"
 
 printf "%s%s\n" "INFO : " "This container will start a service installing APEX $APEX_FULL_VERSION."
 
-### Check connection vars inside file
-function check_conn_definition() {
-  if [[ -f $CONN_STRING_FILE ]]; then
-    source ${CONN_STRING_FILE}
 
+function check_conn_definition() {
+  if [[ -f ${CONF_FILE} ]]; then
+    source ${CONF_FILE}
+
+    # read DB password
     DB_PASS=$(<"/run/secrets/oracle_pwd")
+
+    # optionally check SMTP password
     if [[ "$APEX_SMTP" == true ]]; then
       APEX_SMTP_PASSWORD=$(<"/run/secrets/smtp_pwd")
     fi
@@ -29,17 +31,18 @@ function check_conn_definition() {
       exit 1
     fi
   else
-    printf "\a%s%s\n" "ERROR: " "${CONN_STRING_FILE} has not added, create a file with following vars"
+    printf "\a%s%s\n" "ERROR: " "${CONF_FILE} has not added, create a file with following vars"
     printf "\a%s%s\n" "       " "  DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME variables"
     printf "\a%s%s\n" "       " "  and added as docker volume:"
     exit 1
   fi
 }
 
-function testDB() {
-  check_conn_definition
+function try_connect() {
+  local display_conn="${DB_USER}/*****@${DB_HOST}:${DB_PORT}/${1}"
+  local value_conn="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${1}"
 
-  printf "%s%s\n" "WAIT : " "Try connection to DB: ${DB_USER}/******@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+  printf "%s%s\n" "WAIT : " "Try connection to DB: ${display_conn}"
 
   COUNTER=0
   while [  $COUNTER -lt 20 ]; do
@@ -50,7 +53,7 @@ function testDB() {
   set heading off
   set feedback off
   set pages 0
-  conn ${SQLPLUS_ARGS}
+  conn ${value_conn} as sysdba
   select 'DB   : Connection is working' from dual;
   exit
 EOF
@@ -67,11 +70,19 @@ EOF
 
       if [[ ${COUNTER} -eq 20 ]]; then
         printf "\a%s%s\n" "ERROR: " "Cannot connect to database please validate Connection Vars"
-        printf "%s%s\n"   "       " "   user/password@hostname:port/service_name                            "
+        printf "%s%s\n"   "       " "   user/password@hostname:port/service_name"
         exit 1
       fi
     fi
   done
+}
+
+function check_database() {
+  # check if configuration vars are present
+  check_conn_definition
+
+  # let's check the connection itself
+  try_connect ${DB_NAME}
 }
 
 function get_true_falsy () {
@@ -117,6 +128,12 @@ EOF
 }
 
 function install_patch() {
+  printf "%s%s\n" "INFO : " "========================================"
+  printf "%s%s\n" "INFO : " "========================================"
+  printf "%s%s\n" "INFO : " "========================================"
+  printf "%s%s\n" "INFO : " ""
+
+
   if [[ -d ${PSET_HOME} ]]; then
     printf "%s%s\n" "INFO : " "Patchset found"
 
@@ -168,6 +185,10 @@ EOF
 }
 
 function install_apex() {
+  printf "%s%s\n" "INFO : " "========================================"
+  printf "%s%s\n" "INFO : " "========================================"
+  printf "%s%s\n" "INFO : " "========================================"
+
   if [[ -f ${APEX_HOME}/apexins.sql ]]; then
     printf "%s%s\n" "INFO : " "Installing APEX on your DB please this will take a while."
 
@@ -205,44 +226,6 @@ function install_apex_images() {
   fi
 }
 
-function set_password() {
-  if [[ ${INS_STATUS} == "FRESH" ]] ; then
-
-    cd ${APEX_HOME}
-
-    sqlplus /nolog << EOF
-    conn ${SQLPLUS_ARGS}
-
-    Prompt Setup internal
-    begin
-      apex_util.set_workspace(p_workspace => 'internal');
-      apex_util.create_user( p_user_name                    => 'ADMIN',
-                            p_email_address                => '${APEX_INTERNAL_MAIL}',
-                            p_web_password                 => 'Welcome_01!',
-                            p_change_password_on_first_use => 'Y' );
-      commit;
-    end;
-    /
-
-
-
-EOF
-
-    RESULT=$?
-    if [ ${RESULT} -eq 0 ] ; then
-      printf "%s%s\n" "INFO : " "APEX ADMIN password has configured as 'Welcome_01!'."
-      printf "%s%s\n" "INFO : " "Use below login credentials to first time login to APEX service:"
-      printf "%s%s\n" "       " "  Workspace: internal"
-      printf "%s%s\n" "       " "  User:      admin"
-      printf "%s%s\n" "       " "  Password:  Welcome_01!"
-    else
-      printf "\a%s%s\n" "ERROR : " "APEX Internal Configuration failed."
-      exit 1
-    fi
-  else
-    printf "%s%s\n" "INFO : " "APEX was updated but your previous ADMIN password was not affected."
-  fi
-}
 
 function config_apex() {
   if [[ ${INS_STATUS} == "FRESH" ]] ; then
@@ -455,8 +438,6 @@ function apex_install() {
 
   if [[ ${INS_STATUS} == "FRESH" ]]; then
     config_apex
-    # set_password
-
     install_wallets
     check_second_bdb
   fi
@@ -465,8 +446,8 @@ function apex_install() {
   install_patch_images
 }
 
-function check_apex() {
-  # Validate if apex is instaled and the version
+function check_apex_version() {
+  # check if APEX is installed and what version is present
   sqlplus -s -l /nolog << EOF > /tmp/apex_version 2> /dev/null
   conn ${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba
   SET LINESIZE 20000 TRIM ON TRIMSPOOL ON
@@ -498,44 +479,75 @@ EOF
     # Validate if an upgrade needed
     if [[ "$APEX_DB_VERSION" = "$APEX_FULL_VERSION" ]]; then
       printf "%s%s\n" "INFO : " "APEX $APEX_FULL_VERSION is already installed in your database."
-      export INS_STATUS="INSTALLED"
+      INS_STATUS="INSTALLED"
     elif [[ $DB_YEAR -gt $YEAR ]]; then
-      printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is $APEX_FULL_VERSION. Stopping the container."
+      printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
     elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -gt $QTR ]]; then
-      printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is $APEX_FULL_VERSION. Stopping the container."
+      printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
     elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -eq $QTR ]] && [[ $DB_PATCH -gt $PATCH ]]; then
-      printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is $APEX_FULL_VERSION. Stopping the container."
+      printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
     else
-      printf "%s%s\n" "INFO : " "Your have installed APEX ($APEX_DB_VERSION) on you database but will be upgraded to $APEX_FULL_VERSION."
-      export INS_STATUS="UPGRADE"
-      apex_install
+      printf "%s%s\n" "INFO : " "Your have installed APEX ($APEX_DB_VERSION) on you database but will be upgraded to ${APEX_FULL_VERSION}."
+      INS_STATUS="UPGRADE"
     fi
   else
     printf "%s%s\n" "INFO : " "APEX is not installed on your database."
-    export INS_STATUS="FRESH"
-    apex_install
+    INS_STATUS="FRESH"
   fi
 }
 
+function unpack_apex() {
+  # check if APEX_DIR exists
+  [[ -d ${APEX_DIR} ]] || mkdir -p ${APEX_DIR}
+
+  cd ${APEX_DIR}
+
+  # check if FILE exists
+  if [[ -f "apex_${APEX_VERSION}_en.zip" ]]; then
+    printf "%s%s\n" "INFO : " "unzipping apex_${APEX_VERSION}_en.zip"
+    unzip -q "apex_${APEX_VERSION}_en.zip"
+    rm "apex_${APEX_VERSION}_en.zip"
+  fi
+
+  if [[ -f "apex_patch.zip" ]]; then
+    printf "%s%s\n" "INFO : " "unzipping apex_patch.zip"
+    unzip -q "apex_patch.zip" -d "patchset"
+    rm "apex_patch.zip"
+  fi
+}
 
 function run_script() {
-  # No config file so we try
-  if [[ -f ${CONN_STRING_FILE} ]]; then
+  # check if we have tu unzip
+  if [[ ! -d "${APEX_DIR}apex" ]]; then
+    printf "%s%s\n" "INFO : " "APEX Directory not found"
+    unpack_apex;
+  else
+    printf "%s%s\n" "INFO : " "APEX Directory exists"
+  fi
+
+  # check if configuration file is present
+  if [[ -f ${CONF_FILE} ]]; then
     # check connection
-    testDB
+    check_database
 
     # check APEX Installation
-    check_apex
+    check_apex_version
+
+    # install or upgrade when needed
+    if [[ ${INS_STATUS} == "FRESH" ]] || [[ ${INS_STATUS} == "UPGRADE" ]]; then
+      apex_install
+    fi
   else
-    printf "\a%s%s\n" "WARN : " "No configuration found"
+    printf "\a%s%s\n" "WARN : " "Configuration ${CONF_FILE} NOT found"
   fi
 }
 
-
+# execute everything we need
 run_script
 
-
+# just do nothing, otherwise container will stop
 tail -f /dev/null
+

@@ -29,17 +29,9 @@ ADD ${APEX_PSET_URL} "${APEX_DIR}/apex_patch.zip"
 # all installation files
 COPY scripts /scripts
 
-# set working dir
-WORKDIR ${APEX_DIR}
+RUN set -x && chmod +x /scripts/*.sh
 
-# TODO: Im EntryPoint entpacken
-RUN unzip -q apex_${APEX_VERSION}_en.zip && \
-    rm apex_${APEX_VERSION}_en.zip && \
-    unzip -q apex_patch.zip -d patchset && \
-    rm apex_patch.zip && \
-    set -x && chmod +x /scripts/*.sh
-
-
+# NO Ports
 
 # ENTRYPOINT
 ENTRYPOINT ["/scripts/entry_apex.sh"]
