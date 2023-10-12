@@ -120,6 +120,10 @@ if [[ "$APEX" == true ]]; then
   DCKAPX_COMP_FILES+="-f ./apex/docker_compose.yml "
 
   validate_apex_params
+
+  if [[ "$ORDS" == true ]]; then
+    DCKAPX_COMP_FILES+="-f ./apex/ords_compose.yml "
+  fi
 fi
 
 if [[ "$ORDS" == true ]]; then
@@ -146,9 +150,6 @@ if [[ "$AOP" == true ]]; then
   DCKAPX_COMP_FILES+="-f ./aop/docker_compose.yml "
 
   validate_aop_params
-  if [[ "$TRAEFIK" == true ]]; then
-    DCKAPX_COMP_FILES+="-f ./aop/traefik_compose.yml "
-  fi
 fi
 
 if [[ "$TRAEFIK" == true ]]; then
