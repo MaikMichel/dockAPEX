@@ -40,11 +40,10 @@ services:
        #### set traefik dashboard
       - "traefik.http.routers.traefik.service=api@internal"
 
-      - "traefik.http.routers.traefik.middlewares=basic-auth-global,mystrip"
-      - "traefik.http.middlewares.basic-auth-global.basicauth.usersfile=/run/secrets/trfk_usrpwd"
+      - "traefik.http.routers.traefik.middlewares=diggest-auth-global,mystrip"
+      - "traefik.http.middlewares.diggest-auth-global.digestauth.usersfile=/run/secrets/trfk_usrpwd"
 
       #### set middlewares: stripprefix for dashboard
-      # - "traefik.http.routers.traefik.middlewares=mystrip"
       - "traefik.http.middlewares.mystrip.stripprefix.prefixes=/traefik"
 
       # #### set TLS
