@@ -12,7 +12,7 @@ services:
     container_name: tomcat
     ports:
       - 9080:${TOMCAT_PORT}
-    restart: always
+    restart: unless-stopped
     depends_on:
       ords:
         condition: service_healthy

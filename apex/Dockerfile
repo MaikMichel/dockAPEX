@@ -23,8 +23,8 @@ ENV APEX_IMAGE_PREFIX=${APEX_IMAGE_PREFIX} \
     APEX_DIR=/opt/oracle/apex-${APEX_VERSION}/
 
 # Download binary
-ADD ${APEX_URL} "${APEX_DIR}/apex_${APEX_VERSION}_en.zip"
-ADD ${APEX_PSET_URL} "${APEX_DIR}/apex_patch.zip"
+ADD ${APEX_URL} "/tmp/apex_${APEX_VERSION}.zip"
+ADD ${APEX_PSET_URL} "tmp/apex_patch_${APEX_FULL_VERSION}.zip"
 
 # all installation files
 COPY scripts /scripts

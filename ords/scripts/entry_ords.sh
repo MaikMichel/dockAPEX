@@ -1,38 +1,37 @@
 #!/bin/bash
 
 ## VARS
-CONN_STRING_FILE="/opt/oracle/config.env"
+CONFIG_FILE="/opt/oracle/config.env"
 ORDS_IMAGE_DIR="/opt/oracle/images"
 APEX_HOME="/opt/oracle/apex-${APEX_VERSION}/apex"
 
 printf "%s%s\n" "INFO : " "This container will start a service running ORDS ${ORDS_VERSION}."
 
-### Check connection vars inside file
+function read_env_conf_file() {
+  if [[ -f $CONFIG_FILE ]]; then
+    source $CONFIG_FILE
+  else
+    printf "\a%s%s\n" "ERROR: " "${CONFIG_FILE} not found!"
+    exit 1
+  fi
+}
+
 function check_conn_definition() {
-  if [[ -f $CONN_STRING_FILE ]]; then
-    source $CONN_STRING_FILE
+  # read DB password
+  DB_PASS=$(<"/run/secrets/oracle_pwd")
 
-    # read DB password
-    DB_PASS=$(<"/run/secrets/oracle_pwd")
+  # read ORDS password
+  ORDS_PASSWORD=$(<"/run/secrets/ords_pwd")
 
-    # read ORDS password
-    ORDS_PASSWORD=$(<"/run/secrets/ords_pwd")
-
-    if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
-      printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
-      SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
-      if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
-        SQLPLUS_ARGS2="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB} as sysdba"
-      fi
-    else
-      printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."
-      printf "%s%s\n"   "       " "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
-      exit 1
+  if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
+    printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
+    SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
+    if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
+      SQLPLUS_ARGS2="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB} as sysdba"
     fi
   else
-    printf "\a%s%s\n" "ERROR: " "${CONN_STRING_FILE} has not added, create a file with"
-    printf "\a%s%s\n" "       " "  DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME variables"
-    printf "\a%s%s\n" "       " "  and added as docker volume:"
+    printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."
+    printf "%s%s\n"   "       " "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
     exit 1
   fi
 }
@@ -243,6 +242,7 @@ function run_ords() {
     fi
   fi
 
+  printf "\a%s%s\n" "DEBG : " "TOMCAT = ${TOMCAT,,}"
   # Start serving or let TOMCAT to that
   if [[ ${TOMCAT,,} != "true" ]]; then
     printf "\a%s%s\n" "INFO : " "ORDS will serve ..."
@@ -303,7 +303,7 @@ function run_script() {
     run_ords
   else
     # Not configured yet, so we have to
-    if [ -e $CONN_STRING_FILE ]; then
+    if [ -e $CONFIG_FILE ]; then
       # check connection
       check_database
 
@@ -322,6 +322,10 @@ function run_script() {
   fi
 
 }
+
+# read all conf params from mounted file
+read_env_conf_file
+
 # execute everything we need
 run_script
 

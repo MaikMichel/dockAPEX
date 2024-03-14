@@ -22,6 +22,7 @@ services:
       interval: 10s
       retries: 45
       start_period: 5m
+    restart: unless-stopped
 
 volumes:
   db_store:

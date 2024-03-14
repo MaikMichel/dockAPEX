@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## VARS
-CONF_FILE="/opt/oracle/config.env"
+CONFIG_FILE="/opt/oracle/config.env"
 
 APEX_HOME="${APEX_DIR}apex"
 APEX_IMAGES="/opt/oracle/images"
@@ -10,30 +10,30 @@ PSET_HOME="${APEX_DIR}patchset"
 printf "%s%s\n" "INFO : " "This container will start a service installing APEX $APEX_FULL_VERSION."
 
 
-function check_conn_definition() {
-  if [[ -f ${CONF_FILE} ]]; then
-    source ${CONF_FILE}
-
-    # read DB password
-    DB_PASS=$(<"/run/secrets/oracle_pwd")
-
-    # optionally check SMTP password
-    if [[ "$APEX_SMTP" == true ]]; then
-      APEX_SMTP_PASSWORD=$(<"/run/secrets/smtp_pwd")
-    fi
-
-    if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
-      printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
-      SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
-    else
-      printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."
-      printf "%s%s\n"   "       " "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
-      exit 1
-    fi
+function read_env_conf_file() {
+  if [[ -f $CONFIG_FILE ]]; then
+    source $CONFIG_FILE
   else
-    printf "\a%s%s\n" "ERROR: " "${CONF_FILE} has not added, create a file with following vars"
-    printf "\a%s%s\n" "       " "  DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME variables"
-    printf "\a%s%s\n" "       " "  and added as docker volume:"
+    printf "\a%s%s\n" "ERROR: " "${CONFIG_FILE} not found!"
+    exit 1
+  fi
+}
+
+function check_conn_definition() {
+  # read DB password
+  DB_PASS=$(<"/run/secrets/oracle_pwd")
+
+  # optionally check SMTP password
+  if [[ "$APEX_SMTP" == true ]]; then
+    APEX_SMTP_PASSWORD=$(<"/run/secrets/smtp_pwd")
+  fi
+
+  if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
+    printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
+    SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
+  else
+    printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."
+    printf "%s%s\n"   "       " "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
     exit 1
   fi
 }
@@ -499,37 +499,39 @@ EOF
   fi
 }
 
-function unpack_apex() {
-  # check if APEX_DIR exists
+function check_unpack_apex() {
+    # check if APEX_DIR exists
   [[ -d ${APEX_DIR} ]] || mkdir -p ${APEX_DIR}
 
-  cd ${APEX_DIR}
+  # if [[ ! -d "${APEX_DIR}apex" ]]; then
+    # printf "%s%s\n" "INFO : " "APEX Directory (${APEX_DIR}apex) not found"
 
-  # check if FILE exists
-  if [[ -f "apex_${APEX_VERSION}_en.zip" ]]; then
-    printf "%s%s\n" "INFO : " "unzipping apex_${APEX_VERSION}_en.zip"
-    unzip -q "apex_${APEX_VERSION}_en.zip"
-    rm "apex_${APEX_VERSION}_en.zip"
-  fi
+    cd ${APEX_DIR}
 
-  if [[ -f "apex_patch.zip" ]]; then
-    printf "%s%s\n" "INFO : " "unzipping apex_patch.zip"
-    unzip -q "apex_patch.zip" -d "patchset"
-    rm "apex_patch.zip"
-  fi
+    # check if FILE exists
+    if [[ -f "/tmp/apex_${APEX_VERSION}.zip" ]]; then
+      printf "%s%s\n" "INFO : " "unzipping apex_${APEX_VERSION}.zip"
+      unzip -q "/tmp/apex_${APEX_VERSION}.zip"
+      # rm "apex_${APEX_VERSION}_en.zip"
+    fi
+
+    if [[ -f "/tmp/apex_patch_${APEX_FULL_VERSION}.zip" ]]; then
+      printf "%s%s\n" "INFO : " "unzipping apex_patch_${APEX_FULL_VERSION}.zip"
+      unzip -q "/tmp/apex_patch_${APEX_FULL_VERSION}.zip" -d "patchset"
+      # rm "apex_patch_${APEX_FULL_VERSION}.zip"
+    fi
+
+  # else
+    # printf "%s%s\n" "INFO : " "APEX Directory (${APEX_DIR}apex) exists"
+  # fi
 }
 
 function run_script() {
   # check if we have tu unzip
-  if [[ ! -d "${APEX_DIR}apex" ]]; then
-    printf "%s%s\n" "INFO : " "APEX Directory not found"
-    unpack_apex;
-  else
-    printf "%s%s\n" "INFO : " "APEX Directory exists"
-  fi
+  check_unpack_apex;
 
   # check if configuration file is present
-  if [[ -f ${CONF_FILE} ]]; then
+  if [[ -f ${CONFIG_FILE} ]]; then
     # check connection
     check_database
 
@@ -539,11 +541,15 @@ function run_script() {
     # install or upgrade when needed
     if [[ ${INS_STATUS} == "FRESH" ]] || [[ ${INS_STATUS} == "UPGRADE" ]]; then
       apex_install
+      printf "%s%s\n" "INFO : " "APEX was successfully installed"
     fi
   else
-    printf "\a%s%s\n" "WARN : " "Configuration ${CONF_FILE} NOT found"
+    printf "\a%s%s\n" "WARN : " "Configuration ${CONFIG_FILE} NOT found"
   fi
 }
+
+# read all conf params from mounted file
+read_env_conf_file
 
 # execute everything we need
 run_script

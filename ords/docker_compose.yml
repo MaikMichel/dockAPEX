@@ -18,7 +18,7 @@ services:
     container_name: ords
     ports:
       - 8080:${ORDS_PORT}
-    restart: always
+    restart: unless-stopped
     depends_on:
       database:
         condition: service_healthy
@@ -33,7 +33,6 @@ services:
       timeout: 30s
       retries: 10
       start_period: 5m
-
 volumes:
   ords_config:
     driver: local

@@ -6,7 +6,7 @@ services:
   traefik:
     image: traefik:v2.10
     container_name: traefik
-    restart: always
+    restart: unless-stopped
     ports:
       - "80:80"   # <== http
       - "443:443" # <== https

@@ -9,7 +9,7 @@ services:
     container_name: aop
     ports:
       - 8010:${AOP_PORT}
-    restart: always
+    restart: unless-stopped
     depends_on:
       database:
         condition: service_healthy

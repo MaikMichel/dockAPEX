@@ -17,7 +17,7 @@ services:
       - oracle_pwd
       - smtp_pwd
     container_name: apex
-    restart: always
+    restart: unless-stopped
     depends_on:
       database:
         condition: service_healthy
