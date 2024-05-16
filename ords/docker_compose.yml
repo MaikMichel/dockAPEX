@@ -31,8 +31,8 @@ services:
       test: '/scripts/healtcheck_tomcat_${TOMCAT}.sh ${ORDS_PORT}'
       interval: 1m
       timeout: 30s
-      retries: 10
-      start_period: 5m
+      retries: 45
+      start_period: 1m
 volumes:
   ords_config:
     driver: local

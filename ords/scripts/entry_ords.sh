@@ -27,7 +27,7 @@ function check_conn_definition() {
     printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
     SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
     if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
-      SQLPLUS_ARGS2="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB} as sysdba"
+      SQLPLUS_ARGS2="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB_NAME} as sysdba"
     fi
   else
     printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."

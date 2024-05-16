@@ -29,7 +29,7 @@ services:
       interval: 1m
       timeout: 30s
       retries: 45
-
+      start_period: 1m
 
 volumes:
   tom_conf:
