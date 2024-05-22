@@ -234,7 +234,12 @@ function genfiles() {
   sed -i '1,2d' "${target_file}.sec"
 
   echo_info "${target_file}.env and ${target_file}.sec created"
-  echo_info "Please define config properties in the files created"
+  echo_info "Please define your configuration properties here"
+
+  write_line_if_not_exists "# do not commit your securities" ".gitignore"
+  write_line_if_not_exists "${target_file}.sec" ".gitignore"
+
+  ls -la ${target_file}.*
 }
 case ${1} in
   'clear')

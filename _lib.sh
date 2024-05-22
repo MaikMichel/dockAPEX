@@ -84,3 +84,14 @@ function check_secret() {
 
   [[ ${do_exit} == false ]] || exit 2
 }
+
+function write_line_if_not_exists () {
+  local line=$1
+  local file=$2
+
+  if  grep -qxF "$line" "$file" ; then
+    : # echo "$line exists in $file"
+  else
+    echo "$line" >> "$file"
+  fi
+}

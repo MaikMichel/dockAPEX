@@ -107,7 +107,7 @@ if [[ ${TARGET_PATH} != "." ]]; then
 fi
 
 echo -e "${BGRAY}to generate environmen file call:${NC}"
-echo -e "${WHITE}.dockAPEX/dpex.sh demo.env generate${NC}"
+echo -e "${WHITE}.dockAPEX/dpex.sh demo.env genfiles${NC}"
 echo -e ""
 echo -e "${BGRAY}edit configuration parameters in files demo.env and demo.sec${NC}"
 echo -e ""

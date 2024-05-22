@@ -1,7 +1,10 @@
-# do not commit your env files
+# do not commit your env files in this repo
 *.env
 *.sec
 
 # this one is ok
 !_template/_defaults.env
 .vscode/settings.json
+# do not commit your securities
+ddd.sec
+dsd.sec
