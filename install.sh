@@ -97,21 +97,20 @@ echo -e "${CYAN}clone dockAPEX as submodule${NC}"
 git submodule add https://github.com/MaikMichel/dockAPEX.git .dockAPEX
 echo
 
-echo -e "${GREEN}dockAPEX installed in Folder: ${BUNLINE}${TARGET_PATH}/.dockAPEX${NC}"
+echo -e "${CYAN}dockAPEX installed in Folder: ${BUNLINE}${TARGET_PATH}/.dockAPEX${NC}"
 echo
 
 if [[ ${TARGET_PATH} != "." ]]; then
-  echo -e "${YELLOW}Before you start to work, you have to go to your instance folder ${BUNLINE}${TARGET_PATH}${NC}"
-  echo -e "${BWHITE}cd ${TARGET_PATH}${NC}"
+  echo -e "${CYAN}Before you start to work, you have to go to your instance folder ${BUNLINE}${TARGET_PATH}${NC}"
+  echo -e "${BWHITE}${BUNLINE}cd ${TARGET_PATH}${NC}"
   echo
 fi
 
 echo -e "${BGRAY}to generate environmen file call:${NC}"
-echo -e "${WHITE}.dockAPEX/dpex.sh demo.env genfiles${NC}"
+echo -e "${WHITE}.dockAPEX/dpex.sh ${TARGET_PATH}.env genfiles${NC}"
 echo -e ""
-echo -e "${BGRAY}edit configuration parameters in files demo.env and demo.sec${NC}"
-echo -e ""
+echo -e "${BGRAY}edit configuration parameters in files ${TARGET_PATH}.env and ${TARGET_PATH}.sec${NC}"
 echo -e "${BGRAY}run the stack${NC}"
-echo -e "${WHITE}.dockAPEX/dpex.sh demo.env up --build --detach${NC}"
+echo -e "${WHITE}.dockAPEX/dpex.sh ${TARGET_PATH}.env up --build --detach${NC}"
 echo -e ""
 echo -e "${BORANGE}To learn more, see the readme: ${BUNLINE}${TARGET_PATH}/.dockAPEX/readme.md${NC}"
