@@ -78,7 +78,7 @@ if [[ $# > 0 ]]; then
     TARGET_PATH=${1}
 fi
 
-echo -e "${CYAN}Installing dpex in Folder: ${TARGET_PATH}${NC}"
+echo -e "${CYAN}Installing docAPEX in Folder: ${TARGET_PATH}${NC}"
 
 if [[ ! -d "${TARGET_PATH}" ]]; then
   mkdir -p "${TARGET_PATH}"
@@ -93,11 +93,11 @@ if [[ ! -d ".git" ]]; then
   echo
 fi
 
-echo -e "${CYAN}clone dpex as submodule${NC}"
-git submodule add https://github.com/MaikMichel/dpex.git .dpex
+echo -e "${CYAN}clone dockAPEX as submodule${NC}"
+git submodule add https://github.com/MaikMichel/dockAPEX.git .dockAPEX
 echo
 
-echo -e "${GREEN}dpex installed in Folder: ${BUNLINE}${TARGET_PATH}${NC}"
+echo -e "${GREEN}dockAPEX installed in Folder: ${BUNLINE}${TARGET_PATH}/.dockAPEX${NC}"
 echo
 
 if [[ ${TARGET_PATH} != "." ]]; then
@@ -114,4 +114,4 @@ echo -e ""
 echo -e "${BGRAY}run the stack${NC}"
 echo -e "${WHITE}.dockAPEX/dpex.sh demo.env up --build --detach${NC}"
 echo -e ""
-echo -e "${BORANGE}To learn more, see the readme${NC}"
+echo -e "${BORANGE}To learn more, see the readme: ${BUNLINE}${TARGET_PATH}/.dockAPEX/readme.md${NC}"
