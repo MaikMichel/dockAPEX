@@ -1,0 +1,144 @@
+# Templatefile
+# all "§" will be replaced by "$"
+# ========================================================
+#  _____       _______       ____           _____ ______
+# |  __ \   /\|__   __|/\   |  _ \   /\    / ____|  ____|
+# | |  | | /  \  | |  /  \  | |_) | /  \  | (___ | |__
+# | |  | |/ /\ \ | | / /\ \ |  _ < / /\ \  \___ \|  __|
+# | |__| / ____ \| |/ ____ \| |_) / ____ \ ____) | |____
+# |_____/_/    \_\_/_/    \_\____/_/    \_\_____/|______|
+#
+# ========================================================
+
+# Enable DB Service
+DB=${DB}
+
+# Vars to connect to and / or create the service
+DB_USER="${DB_USER}"
+DB_HOST="${DB_HOST}"
+DB_PORT="${DB_PORT}"
+DB_NAME="${DB_NAME}"
+
+
+
+# ========================================================
+#           _____  ________   __
+#     /\   |  __ \|  ____\ \ / /
+#    /  \  | |__) | |__   \ V /
+#   / /\ \ |  ___/|  __|   > <
+#  / ____ \| |    | |____ / . \
+# /_/    \_\_|    |______/_/ \_\
+#
+# ========================================================
+
+# Enable APEX Service
+APEX=${APEX}
+
+# Build ARGS, when build the image by your own
+APEX_VERSION="${APEX_VERSION}"
+APEX_FULL_VERSION="${APEX_FULL_VERSION}"
+APEX_URL="https://download.oracle.com/otn_software/apex/apex_§{APEX_VERSION}_en.zip"
+APEX_PSET_URL="${APEX_PSET_URL}"
+
+# TableSpace Config
+# create the tablespace in install
+APEX_CREATE_TSPACE="${APEX_CREATE_TSPACE}"
+APEX_CREATE_TSPACE_PATH="${APEX_CREATE_TSPACE_PATH}"
+
+# install APEX to that tablespace
+APEX_SPACE_NAME="${APEX_SPACE_NAME}"
+
+# Where should images be cunsumed from
+APEX_IMAGE_PREFIX="${APEX_IMAGE_PREFIX}"
+
+
+# Do we need a copy of PDB1?
+APEX_SECND_PDB="${APEX_SECND_PDB}"
+APEX_FIRST_PDB_TBL_SPACE="${APEX_FIRST_PDB_TBL_SPACE}"
+APEX_SECND_PDB_TBL_SPACE="${APEX_SECND_PDB_TBL_SPACE}"
+APEX_SECND_PDB_POOL_NAME="${APEX_SECND_PDB_POOL_NAME}"
+APEX_SECND_PDB_NAME="${APEX_SECND_PDB_NAME}"
+
+# Used for internal admin
+APEX_INTERNAL_MAIL="${APEX_INTERNAL_MAIL}"
+
+# SMTP Config for the instance
+APEX_SMTP=${APEX_SMTP}
+APEX_SMTP_HOST_ADDRESS="${APEX_SMTP_HOST_ADDRESS}"
+APEX_SMTP_FROM="${APEX_SMTP_FROM}"
+APEX_SMTP_USERNAME="${APEX_SMTP_USERNAME}"
+
+
+
+
+
+#   ____  _____  _____   _____
+#  / __ \|  __ \|  __ \ / ____|
+# | |  | | |__) | |  | | (___
+# | |  | |  _  /| |  | |\___ \
+# | |__| | | \ \| |__| |____) |
+#  \____/|_|  \_\_____/|_____/
+#
+# ========================================================
+ORDS=${ORDS}
+
+# BUILD ARGS
+ORDS_FULL_VERSION="${ORDS_FULL_VERSION}"
+ORDS_VERSION="${ORDS_VERSION}"
+ORDS_URL="https://download.oracle.com/otn_software/java/ords/ords-§{ORDS_FULL_VERSION}.zip"
+
+
+ORDS_PORT="8080"
+
+# ORDS will curl set to true
+ORDS_DDNS="${ORDS_DDNS}"
+ORDS_DDNS_USER="${ORDS_DDNS_USER}"
+ORDS_DDNS_URL="${ORDS_DDNS_URL}"
+
+
+
+#  _______ ____  __  __  _____       _______
+# |__   __/ __ \|  \/  |/ ____|   /\|__   __|
+#    | | | |  | | \  / | |       /  \  | |
+#    | | | |  | | |\/| | |      / /\ \ | |
+#    | | | |__| | |  | | |____ / ____ \| |
+#    |_|  \____/|_|  |_|\_____/_/    \_\_|
+#
+# ========================================================
+TOMCAT=${TOMCAT}
+
+# BUILD ARGS
+TOMCAT_VERSION="${TOMCAT_VERSION}"
+TOMCAT_URL="${TOMCAT_URL}"
+
+TOMCAT_PORT="${TOMCAT_PORT}"
+
+
+#           ____  _____
+#     /\   / __ \|  __ \
+#    /  \ | |  | | |__) |
+#   / /\ \| |  | |  ___/
+#  / ____ \ |__| | |
+# /_/    \_\____/|_|
+#
+# ========================================================
+AOP=${AOP}
+AOP_PORT="${AOP_PORT}"
+
+
+
+
+#  _______ _____            ______ ______ _____ _  __
+# |__   __|  __ \     /\   |  ____|  ____|_   _| |/ /
+#    | |  | |__) |   /  \  | |__  | |__    | | | ' /
+#    | |  |  _  /   / /\ \ |  __| |  __|   | | |  <
+#    | |  | | \ \  / ____ \| |____| |     _| |_| . \
+#    |_|  |_|  \_\/_/    \_\______|_|    |_____|_|\_\
+#
+# ========================================================
+TRAEFIK=${TRAEFIK}
+TRAEFIK_DEFAULT_ROUTE="${TRAEFIK_DEFAULT_ROUTE}"
+TRAEFIK_DOMAIN="${TRAEFIK_DOMAIN}"
+TRAEFIK_DASHBOARD="${TRAEFIK_DASHBOARD}"
+
+TRAEFIK_LETSENCRYPT_EMAIL="${TRAEFIK_LETSENCRYPT_EMAIL}"

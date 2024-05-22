@@ -1,0 +1,27 @@
+# Templatefile
+# all "§" will be replaced by "$"
+#  _   _ ________      ________ _____       _____ ____  __  __ __  __ _____ _______      _______ _    _ _____  _____
+# | \ | |  ____\ \    / /  ____|  __ \     / ____/ __ \|  \/  |  \/  |_   _|__   __|    |__   __| |  | |_   _|/ ____|
+# |  \| | |__   \ \  / /| |__  | |__) |   | |   | |  | | \  / | \  / | | |    | |          | |  | |__| | | | | (___
+# | . ` |  __|   \ \/ / |  __| |  _  /    | |   | |  | | |\/| | |\/| | | |    | |          | |  |  __  | | |  \___ \
+# | |\  | |____   \  /  | |____| | \ \    | |___| |__| | |  | | |  | |_| |_   | |          | |  | |  | |_| |_ ____) |
+# |_| \_|______|   \/   |______|_|  \_\    \_____\____/|_|  |_|_|  |_|_____|  |_|          |_|  |_|  |_|_____|_____/
+#
+
+
+# Admin User
+DB_PASS="${DB_PASS}"
+
+# Instance SMTP Account
+SMTP_PASSWORD="${SMTP_PASSWORD}"
+
+# This is for using REST User
+ORDS_PASSWORD="${ORDS_PASSWORD}"
+
+# PWD to make use of DynDNS
+ORDS_DDNS_PASSWORD="${ORDS_DDNS_PASSWORD}"
+
+# User and Password using TRAEFEIK Dashboard
+# echo "admin:$(openssl passwd -apr1 "TheSuperFancyPass")"
+# htdigest -c sec.sec traefik admin
+TRFK_USERPWD="${TRFK_USERPWD}"

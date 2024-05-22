@@ -2,26 +2,43 @@
 
 LIBSOURCED="false"
 
+current_dir=$(dirname "$0")
+path_ref="./"
+
 # include lib
-if [[ ! -f ./_lib.sh ]]; then
-  echo -e "\033[1;41mMissing library '_lib.sh'!\033[0m"
-  exit 1
-else
+if [[ -f "./_lib.sh" ]]; then
   source "./_lib.sh"
+elif [[ -f "./${current_dir}/_lib.sh" ]]; then
+  source "./${current_dir}/_lib.sh"
+  path_ref="./${current_dir}/"
+else
+  echo -e "\033[1;31mError:\033[0m \033[0;31m Missing library '_lib.sh' \033[0m"
+  exit 1
 fi;
 
 function usage() {
   echo "Please call script by using all params in this order!"
-	echo "    $0 command"
+	echo "    $0 env-file genfiles|clear|compose-comand"
   echo "-----------------------------------------------------"
   echo
-  echo "  command "
-  echo "    clear  > removes all container and images, prunes allocated space"
+  echo "  commands: "
+  echo "    genfile > creates an .env and .sec file based on all known vars"
+  echo "    clear   > removes all container and images, prunes allocated space"
   echo ""
-  docker-compose --help
+  echo "    compose-comand   > redirected to docker-compose"
+  echo ""
   echo "-----------------------------------------------------"
-	echo "Canceled !!!"
+  echo ""
+  echo "  examples: "
+  echo "    ./dockapex.sh demo.env genfiles"
+  echo "    ./dockapex.sh demo.env up --build --detach"
+  echo "    ./dockapex.sh demo.env ps -a"
+  echo "    ./dockapex.sh demo.env down"
+  echo "    ./dockapex.sh demo.env clear"
+  echo ""
+  echo "-----------------------------------------------------"
   echo
+	echo "Canceled !!!"
 	exit 1
 }
 
@@ -81,8 +98,11 @@ function validate_trfk_params() {
 export DCKAPX_CONF_FILE=${1:-".env"}
 # check param file
 if [[ ! -f ${DCKAPX_CONF_FILE} ]]; then
-  echo_error "Missing configuration file: ${DCKAPX_CONF_FILE}"
-  exit 1
+  if [[ ${2} != "genfiles" ]]; then
+  echo ${2}
+    echo_error "Missing configuration file: ${DCKAPX_CONF_FILE}"
+    exit 1
+  fi
 else
   ##  export configuration
   set -a
@@ -113,47 +133,47 @@ fi
 
 
 if [[ "$DB" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./database/docker_compose.yml "
+  DCKAPX_COMP_FILES+="-f ${path_ref}database/docker_compose.yml "
 fi
 
 if [[ "$APEX" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./apex/docker_compose.yml "
+  DCKAPX_COMP_FILES+="-f ${path_ref}apex/docker_compose.yml "
 
   validate_apex_params
 
   if [[ "$ORDS" == true ]]; then
-    DCKAPX_COMP_FILES+="-f ./apex/ords_compose.yml "
+    DCKAPX_COMP_FILES+="-f ${path_ref}apex/ords_compose.yml "
   fi
 fi
 
 if [[ "$ORDS" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./ords/docker_compose.yml "
+  DCKAPX_COMP_FILES+="-f ${path_ref}ords/docker_compose.yml "
 
   validate_ords_params
 
   if [[ "$TRAEFIK" == true ]] && [[ "$TOMCAT" != true ]]; then
-    DCKAPX_COMP_FILES+="-f ./ords/traefik_compose.yml "
+    DCKAPX_COMP_FILES+="-f ${path_ref}ords/traefik_compose.yml "
   fi
 fi
 
 if [[ "$TOMCAT" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./tomcat/docker_compose.yml "
+  DCKAPX_COMP_FILES+="-f ${path_ref}tomcat/docker_compose.yml "
 
   validate_tcat_params
 
   if [[ "$TRAEFIK" == true ]]; then
-    DCKAPX_COMP_FILES+="-f ./tomcat/traefik_compose.yml "
+    DCKAPX_COMP_FILES+="-f ${path_ref}tomcat/traefik_compose.yml "
   fi
 fi
 
 if [[ "$AOP" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./aop/docker_compose.yml "
+  DCKAPX_COMP_FILES+="-f ${path_ref}aop/docker_compose.yml "
 
   validate_aop_params
 fi
 
 if [[ "$TRAEFIK" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ./traefik/docker_compose.yml "
+  DCKAPX_COMP_FILES+="-f ${path_ref}traefik/docker_compose.yml "
 fi
 
 
@@ -191,9 +211,37 @@ function clear_containers() {
   fi
 }
 
+function genfiles() {
+  local target_file="${1/.env/}"
+
+
+  # export all vars when defined
+  set -a
+    source "${path_ref}_template/_defaults.env"
+    [[ -f "${target_file}.env" ]] && source "${target_file}.env"
+    [[ -f "${target_file}.sec" ]] && source "${target_file}.sec"
+  set +a
+
+  # create backup
+  [[ -f "${target_file}.env" ]] && mv "${target_file}.env" "${target_file}.env.old"
+  [[ -f "${target_file}.sec" ]] && mv "${target_file}.sec" "${target_file}.sec.old"
+
+  # write vars to target files
+  envsubst < "${path_ref}_template/_template_env" > "${target_file}.env"
+  envsubst < "${path_ref}_template/_template_sec" > "${target_file}.sec"
+
+  sed -i '1,2d' "${target_file}.env"
+  sed -i '1,2d' "${target_file}.sec"
+
+  echo_info "${target_file}.env and ${target_file}.sec created"
+  echo_info "Please define config properties in the files created"
+}
 case ${1} in
   'clear')
     clear_containers ${2}
+    ;;
+  'genfiles')
+    genfiles ${DCKAPX_CONF_FILE}
     ;;
   '-h'|'--help')
     usage
