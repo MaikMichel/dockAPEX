@@ -4,3 +4,4 @@
 
 # this one is ok
 !_template/_defaults.env
+.vscode/settings.json

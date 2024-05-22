@@ -19,7 +19,7 @@ Each component can also be omitted. This means that for a local development envi
 
 ```bash
 # create demo.env and demo.sec
-$ .dockapex/dockapex.sh demo.env generate
+$ .dockapex/dpex demo.env generate
 ```
 
 ### Update Config
@@ -39,7 +39,7 @@ The secrets themselves are passed on to the containers via docker secrets.
 ### Stop and Remove Containers
 
 ```bash
-$ ./dockapex.sh demo.env down
+$ ./dpex demo.env down
 ```
 
 ### Update Konfiguration
@@ -66,7 +66,7 @@ APEX_PSET_URL="https://your-private-object-bucket-or-url/p35895964_2320_Generic.
 ### Rebuild
 
 ```bash
-$ ./dockapex.sh demo.env up --build --force-recreate
+$ ./dpex demo.env up --build --force-recreate
 ```
 
 
@@ -76,23 +76,23 @@ $ ./dockapex.sh demo.env up --build --force-recreate
 
 ```bash
 # follow mode
-$ ./dockapex.sh demo.env logs -f
+$ ./dpex demo.env logs -f
 
 # just the logs
-$ ./dockapex.sh demo.env logs
+$ ./dpex demo.env logs
 
 # logs of apex service
-$ ./dockapex.sh demo.env logs apex
+$ ./dpex demo.env logs apex
 ```
 
 ### show configuration
 ```bash
 # list services
-$ ./dockapex.sh demo.env config --services
+$ ./dpex demo.env config --services
 
 # show config in yml
-$ ./dockapex.sh demo.env config
+$ ./dpex demo.env config
 
 # save config to file
-$ ./dockapex.sh demo.env config --output demo.yml
+$ ./dpex demo.env config --output demo.yml
 ```
