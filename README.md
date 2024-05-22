@@ -10,6 +10,46 @@
 
 Each component can also be omitted. This means that for a local development environment, you simply install the DB with APEX and ORDS and you're done.
 
+## Preparation
+
+Before you are able to use dockAPEX, you have to make sure that you have the following components installed:
+* git
+* docker
+* docker-compose
+
+## Installation
+
+### Automatic
+
+Just run:
+
+```bash
+# creates the instancefolder, makes it a git repo and adds dockAPEX as submodul
+$ curl -sS https://raw.githubusercontent.com/MaikMichel/dockAPEX/main/install.sh | bash -s <instance-project-folder>
+```
+
+or inside a git folder belonging to your instance / project:
+```bash
+$ curl -sS https://raw.githubusercontent.com/MaikMichel/dockAPEX/main/install.sh
+```
+
+### Manual
+
+```bash
+# create a folder belonging to your project
+$ mkdir -p demo
+
+# change into it
+$ cd demo
+
+# make the folder a git project / repo
+$ git init
+
+# clone dockAPEX as submodule"
+$ git submodule add https://github.com/MaikMichel/dockAPEX.git .dockAPEX
+```
+
+
 
 ## Configuration
 
