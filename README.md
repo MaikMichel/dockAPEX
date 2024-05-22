@@ -5,7 +5,7 @@
 - Oracle APEX
 - Oracle ORDS
 - Apache Tomcat
-- APEX Office Print (License Excludes)
+- APEX Office Print
 - Traefic
 
 Each component can also be omitted. This means that for a local development environment, you simply install the DB with APEX and ORDS and you're done.
@@ -59,7 +59,7 @@ $ git submodule add https://github.com/MaikMichel/dockAPEX.git .dockAPEX
 
 ```bash
 # create demo.env and demo.sec
-$ .dockapex/dpex demo.env generate
+$ .dockapex/dpex.sh demo.env generate
 ```
 
 ### Update Config
@@ -79,7 +79,7 @@ The secrets themselves are passed on to the containers via docker secrets.
 ### Stop and Remove Containers
 
 ```bash
-$ ./dpex demo.env down
+$ .dockapex/dpex.sh demo.env down
 ```
 
 ### Update Konfiguration
@@ -106,7 +106,7 @@ APEX_PSET_URL="https://your-private-object-bucket-or-url/p35895964_2320_Generic.
 ### Rebuild
 
 ```bash
-$ ./dpex demo.env up --build --force-recreate
+$ .dockapex/dpex.sh demo.env up --build --force-recreate
 ```
 
 
@@ -116,23 +116,23 @@ $ ./dpex demo.env up --build --force-recreate
 
 ```bash
 # follow mode
-$ ./dpex demo.env logs -f
+$ .dockapex/dpex.sh demo.env logs -f
 
 # just the logs
-$ ./dpex demo.env logs
+$ .dockapex/dpex.sh demo.env logs
 
 # logs of apex service
-$ ./dpex demo.env logs apex
+$ .dockapex/dpex.sh demo.env logs apex
 ```
 
 ### show configuration
 ```bash
 # list services
-$ ./dpex demo.env config --services
+$ .dockapex/dpex.sh demo.env config --services
 
 # show config in yml
-$ ./dpex demo.env config
+$ .dockapex/dpex.sh demo.env config
 
 # save config to file
-$ ./dpex demo.env config --output demo.yml
+$ .dockapex/dpex.sh demo.env config --output demo.yml
 ```

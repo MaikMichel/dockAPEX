@@ -13,12 +13,6 @@ services:
     volumes:
       - db_store:/opt/oracle/oradata
     hostname: ${DB_HOST}
-    # healthcheck:
-    #   # test: [ "CMD", "/opt/oracle/healthcheck.sh"]
-    #   test: [ "CMD", "/opt/oracle/checkDBStatus.sh"]
-    #   interval: 10s
-    #   retries: 45
-    #   start_period: 5m
     restart: unless-stopped
 
 volumes:
