@@ -54,7 +54,7 @@ function usage() {
   echo -e "  ${0} \"instance folder\""
   echo
   echo -e "${BWHITE}Examples:${NC}"
-  echo -e "  ${0} demo
+  echo -e "  ${0} demo"
   echo
   echo
   exit $1
