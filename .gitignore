@@ -5,6 +5,3 @@
 # this one is ok
 !_template/_defaults.env
 .vscode/settings.json
-# do not commit your securities
-ddd.sec
-dsd.sec
