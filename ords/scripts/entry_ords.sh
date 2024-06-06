@@ -276,14 +276,14 @@ function unpack_ords() {
   # check if FILE exists
   if [[ -f "ords-${ORDS_FULL_VERSION}.zip" ]]; then
     printf "%s%s\n" "INFO : " "ords-${ORDS_FULL_VERSION}.zip"
-    unzip -q ords-${ORDS_FULL_VERSION}.zip
+    unzip -oq ords-${ORDS_FULL_VERSION}.zip
     rm ords-${ORDS_FULL_VERSION}.zip
     chmod +x bin/ords
   fi
 
   if [[ -f "apex_patch.zip" ]]; then
     printf "%s%s\n" "INFO : " "unzipping apex_patch.zip"
-    unzip -q "apex_patch.zip" -d "patchset"
+    unzip -oq "apex_patch.zip" -d "patchset"
     rm "apex_patch.zip"
   fi
 }

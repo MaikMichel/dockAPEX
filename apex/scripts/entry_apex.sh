@@ -511,13 +511,13 @@ function check_unpack_apex() {
     # check if FILE exists
     if [[ -f "/tmp/apex_${APEX_VERSION}.zip" ]]; then
       printf "%s%s\n" "INFO : " "unzipping apex_${APEX_VERSION}.zip"
-      unzip -q "/tmp/apex_${APEX_VERSION}.zip"
+      unzip -oq "/tmp/apex_${APEX_VERSION}.zip"
       # rm "apex_${APEX_VERSION}_en.zip"
     fi
 
     if [[ -f "/tmp/apex_patch_${APEX_FULL_VERSION}.zip" ]]; then
       printf "%s%s\n" "INFO : " "unzipping apex_patch_${APEX_FULL_VERSION}.zip"
-      unzip -q "/tmp/apex_patch_${APEX_FULL_VERSION}.zip" -d "patchset"
+      unzip -oq "/tmp/apex_patch_${APEX_FULL_VERSION}.zip" -d "patchset"
       # rm "apex_patch_${APEX_FULL_VERSION}.zip"
     fi
 
