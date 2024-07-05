@@ -258,8 +258,19 @@ function config_apex() {
 
           dbms_network_acl_admin.append_host_ace(host           => '*',
                                                 ace            => xs\$ace_type(privilege_list => xs\$name_list('connect'),
-                                                principal_name => l_apex_schema,
-                                                principal_type => xs_acl.ptype_db));
+                                                                               principal_name => l_apex_schema,
+                                                                               principal_type => xs_acl.ptype_db));
+
+          dbms_network_acl_admin.append_host_ace(host           => '*',
+                                                ace            => xs\$ace_type(privilege_list => xs\$name_list('http'),
+                                                                               principal_name => l_apex_schema,
+                                                                               principal_type => xs_acl.ptype_db));
+
+          -- since 23ai we are able to you OS certificates
+          apex_util.set_workspace(p_workspace => 'internal')
+          apex_instance_admin.set_parameter('WALLET_PATH', 'system:');
+          apex_instance_admin.set_parameter('WALLET_PWD', null);
+
           commit;
         end;
         /
@@ -424,9 +435,10 @@ EOF
 
 }
 
-function install_wallets() {
-  /scripts/install_wallet.sh
-}
+# since 23ai we are able to use OS Wallets
+# function install_wallets() {
+#   /scripts/install_wallet.sh
+# }
 
 function apex_install() {
   create_apex_tablespace
@@ -438,7 +450,7 @@ function apex_install() {
 
   if [[ ${INS_STATUS} == "FRESH" ]]; then
     config_apex
-    install_wallets
+    # install_wallets
     check_second_bdb
   fi
 
