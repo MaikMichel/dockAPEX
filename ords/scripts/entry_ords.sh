@@ -187,14 +187,6 @@ EOF
   DB_QTR=$(echo $ORDS_DB_VERSION | cut -d"." -f2)
   DB_PATCH=$(echo $ORDS_DB_VERSION | cut -d"." -f3)
 
-  grep "SQL Error" /tmp/ords_version > /dev/null
-  RESULT=$?
-
-  if [[ ${RESULT} -eq 0 ]]; then
-    printf "\a%s%s\n" "ERROR: " "Please validate the database status."
-    grep "SQL Error" /tmp/ords_version
-    exit 1
-  fi
 
   if [[ -n "$ORDS_DB_VERSION" ]]; then
     # Validate if an upgrade needed
