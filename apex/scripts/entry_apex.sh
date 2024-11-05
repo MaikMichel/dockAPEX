@@ -267,9 +267,10 @@ function config_apex() {
                                                                                principal_type => xs_acl.ptype_db));
 
           -- since 23ai we are able to you OS certificates
-          apex_util.set_workspace(p_workspace => 'internal')
-          apex_instance_admin.set_parameter('WALLET_PATH', 'system:');
-          apex_instance_admin.set_parameter('WALLET_PWD', null);
+          -- not working: ORA-20987: APEX - Wallet path must be in the form file:<filesystempath>
+          -- apex_util.set_workspace(p_workspace => 'internal');
+          -- apex_instance_admin.set_parameter('WALLET_PATH', 'system:');
+          -- apex_instance_admin.set_parameter('WALLET_PWD', null);
 
           commit;
         end;
@@ -435,10 +436,9 @@ EOF
 
 }
 
-# since 23ai we are able to use OS Wallets
-# function install_wallets() {
-#   /scripts/install_wallet.sh
-# }
+function install_wallets() {
+  /scripts/install_wallet.sh
+}
 
 function apex_install() {
   create_apex_tablespace
@@ -450,7 +450,7 @@ function apex_install() {
 
   if [[ ${INS_STATUS} == "FRESH" ]]; then
     config_apex
-    # install_wallets
+    install_wallets
     check_second_bdb
   fi
 
