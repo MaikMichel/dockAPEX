@@ -1,14 +1,16 @@
-FROM oraclelinux:8-slim
+FROM ghcr.io/graalvm/graalvm-ce:ol8-java17-22.3.3
 
 # Install required packages first
-RUN set -x && microdnf update -y && \
-microdnf install -y unzip openssl python3 oracle-instantclient-release-el8 && \
-microdnf install -y oracle-instantclient-basic oracle-instantclient-sqlplus && \
+RUN ls /etc/yum.repos.d/ && \
+microdnf install unzip ncurses openssl python3 && \
+gu install js && \
+curl -s https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-latest.zip > sqlcl-latest.zip && \
+unzip sqlcl-latest.zip && \
+chmod 755 sqlcl/bin/sql && \
 rm -Rf /var/cache/yum && \
 rm -Rf /var/cache/dnf && \
 echo 'alias ll="ls -la"' >> ~/.bashrc
-
-RUN microdnf install -y java-17-openjdk
+ENV PATH=/app/sqlcl/bin:$PATH
 
 # Define build Args
 ARG ORDS_FULL_VERSION=${ORDS_FULL_VERSION} \

@@ -46,7 +46,7 @@ function try_connect() {
 
   COUNTER=0
   while [  $COUNTER -lt 20 ]; do
-    sqlplus -S -L /nolog << EOF
+    sql -S -L /nolog << EOF
   whenever sqlerror exit failure
   whenever oserror exit failure
   set serveroutput off
@@ -88,7 +88,7 @@ function check_database() {
 function get_true_falsy () {
   local QUERY=$1
 
-  sqlplus -S -L ${SQLPLUS_ARGS} <<EOF
+  sql -S -L ${SQLPLUS_ARGS} <<EOF
 set serveroutput on
 set heading off
 set feedback off
@@ -118,7 +118,7 @@ function create_apex_tablespace(){
       printf "%s%s\n" "INFO : " "Tablespace ${APEX_SPACE_NAME} allready exists, nothing to do"
     else
       printf "%s%s\n" "INFO : " "Creating tablespace ${APEX_SPACE_NAME} "
-      sqlplus -S /nolog << EOF
+      sql -S /nolog << EOF
         conn ${SQLPLUS_ARGS}
         CREATE TABLESPACE ${APEX_SPACE_NAME} DATAFILE '${APEX_CREATE_TSPACE_PATH}' SIZE 400M AUTOEXTEND ON NEXT 10M;
         exit
@@ -141,7 +141,7 @@ function install_patch() {
 
     printf "%s%s\n" "INFO : " "Installing PatchSet on your DB this will take a while.."
 
-    sqlplus /nolog << EOF
+    sql /nolog << EOF
     conn ${SQLPLUS_ARGS}
     @catpatch
 EOF
@@ -176,7 +176,7 @@ function set_image_prefix () {
     printf "%s%s\n" "INFO : " "Setting image prefix to ${APEX_IMAGE_PREFIX}"
     cd ${APEX_HOME}/utilities
 
-    sqlplus /nolog << EOF
+    sql /nolog << EOF
     conn ${SQLPLUS_ARGS}
     @reset_image_prefix_core.sql ${APEX_IMAGE_PREFIX}
 EOF
@@ -193,7 +193,7 @@ function install_apex() {
     printf "%s%s\n" "INFO : " "Installing APEX on your DB please this will take a while."
 
     cd ${APEX_HOME}
-    sqlplus /nolog<< EOF
+    sql /nolog<< EOF
     conn ${SQLPLUS_ARGS}
     @apexins ${APEX_SPACE_NAME} ${APEX_SPACE_NAME} TEMP /i/
 
@@ -233,7 +233,7 @@ function config_apex() {
     if [[ -f ${APEX_HOME}/apexins.sql ]]; then
 
       cd ${APEX_HOME}
-      sqlplus -S ${SQLPLUS_ARGS} <<EOF
+      sql -S ${SQLPLUS_ARGS} <<EOF
 
         set define '^'
         set concat on
@@ -347,7 +347,7 @@ EOF
 
 
       if [[ "$APEX_SMTP" == true ]]; then
-        sqlplus -S ${SQLPLUS_ARGS} <<EOF
+        sql -S ${SQLPLUS_ARGS} <<EOF
 
         set define '^'
         set concat on
@@ -413,7 +413,7 @@ function check_second_bdb(){
   if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
     printf "%s%s\n" "INFO : " "Cloning to ${DB_NAME} to ${APEX_SECND_PDB_NAME}"
 
-    sqlplus -S $SQLPLUS_ARGS <<EOF
+    sql -S $SQLPLUS_ARGS <<EOF
     alter session set container=cdb\$root;
 
     create pluggable database ${APEX_SECND_PDB_NAME} from ${DB_NAME}
@@ -443,7 +443,9 @@ function install_wallets() {
 function apex_install() {
   create_apex_tablespace
 
-  install_apex
+  if [[ ${INS_STATUS} == "FRESH" ]] || [[ ${INS_STATUS} == "UPGRADE" ]]; then
+    install_apex
+  fi
   install_patch
   set_image_prefix
 
@@ -454,13 +456,15 @@ function apex_install() {
     check_second_bdb
   fi
 
-  install_apex_images
+  if [[ ${INS_STATUS} == "FRESH" ]] || [[ ${INS_STATUS} == "UPGRADE" ]]; then
+    install_apex_images
+  fi
   install_patch_images
 }
 
 function check_apex_version() {
   # check if APEX is installed and what version is present
-  sqlplus -s -l /nolog << EOF > /tmp/apex_version 2> /dev/null
+  sql -S -L /nolog << EOF > /tmp/apex_version 2> /dev/null
   conn ${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba
   SET LINESIZE 20000 TRIM ON TRIMSPOOL ON
   SET PAGESIZE 0
@@ -501,6 +505,9 @@ EOF
     elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -eq $QTR ]] && [[ $DB_PATCH -gt $PATCH ]]; then
       printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
+    elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -eq $QTR ]] && [[ $PATCH -gt $DB_PATCH ]]; then
+      printf "%s%s\n" "INFO : " "Your have installed APEX ($APEX_DB_VERSION) on you database but will be patched to ${APEX_FULL_VERSION}."
+      INS_STATUS="UPDATE"
     else
       printf "%s%s\n" "INFO : " "Your have installed APEX ($APEX_DB_VERSION) on you database but will be upgraded to ${APEX_FULL_VERSION}."
       INS_STATUS="UPGRADE"
@@ -515,8 +522,8 @@ function check_unpack_apex() {
     # check if APEX_DIR exists
   [[ -d ${APEX_DIR} ]] || mkdir -p ${APEX_DIR}
 
-  # if [[ ! -d "${APEX_DIR}apex" ]]; then
-    # printf "%s%s\n" "INFO : " "APEX Directory (${APEX_DIR}apex) not found"
+  if [[ ! -d "${APEX_DIR}apex" ]]; then
+    printf "%s%s\n" "INFO : " "APEX Directory (${APEX_DIR}apex) not found"
 
     cd ${APEX_DIR}
 
@@ -524,22 +531,20 @@ function check_unpack_apex() {
     if [[ -f "/tmp/apex_${APEX_VERSION}.zip" ]]; then
       printf "%s%s\n" "INFO : " "unzipping apex_${APEX_VERSION}.zip"
       unzip -oq "/tmp/apex_${APEX_VERSION}.zip"
-      # rm "apex_${APEX_VERSION}_en.zip"
     fi
 
     if [[ -f "/tmp/apex_patch_${APEX_FULL_VERSION}.zip" ]]; then
       printf "%s%s\n" "INFO : " "unzipping apex_patch_${APEX_FULL_VERSION}.zip"
       unzip -oq "/tmp/apex_patch_${APEX_FULL_VERSION}.zip" -d "patchset"
-      # rm "apex_patch_${APEX_FULL_VERSION}.zip"
     fi
 
-  # else
-    # printf "%s%s\n" "INFO : " "APEX Directory (${APEX_DIR}apex) exists"
-  # fi
+  else
+    printf "%s%s\n" "INFO : " "APEX Directory (${APEX_DIR}apex) exists"
+  fi
 }
 
 function run_script() {
-  # check if we have tu unzip
+  # check if we have to unzip
   check_unpack_apex;
 
   # check if configuration file is present
@@ -551,7 +556,7 @@ function run_script() {
     check_apex_version
 
     # install or upgrade when needed
-    if [[ ${INS_STATUS} == "FRESH" ]] || [[ ${INS_STATUS} == "UPGRADE" ]]; then
+    if [[ ${INS_STATUS} == "FRESH" ]] || [[ ${INS_STATUS} == "UPGRADE" ]] || [[ ${INS_STATUS} == "UPDATE" ]]; then
       apex_install
       printf "%s%s\n" "INFO : " "APEX was successfully installed"
     fi

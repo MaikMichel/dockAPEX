@@ -44,7 +44,7 @@ function try_connect() {
 
   COUNTER=0
   while [  $COUNTER -lt 20 ]; do
-    sqlplus -S -L /nolog << EOF
+    sql -S -L /nolog << EOF
   whenever sqlerror exit failure
   whenever oserror exit failure
   set serveroutput off
@@ -98,7 +98,7 @@ function install_ords() {
   if [[ "$APEX" == true ]]; then
     printf "%s%s\n" "INFO : " "Config APEX_PUBLIC_USER"
 
-    sqlplus /nolog << EOF
+    sql /nolog << EOF
       conn ${SQLPLUS_ARGS}
 
       Prompt setting PWD for APEX_PUBLIC_USER
@@ -129,7 +129,7 @@ EOF
     if [[ "$APEX" == true ]]; then
       printf "%s%s\n" "INFO : " "Config APEX_PUBLIC_USER in second PDB"
 
-      sqlplus /nolog << EOF
+      sql /nolog << EOF
       conn ${SQLPLUS_ARGS2}
 
       Prompt setting PWD for APEX_PUBLIC_USER
@@ -168,7 +168,7 @@ EOF
 
 function check_ords_version() {
   # check if ORDS is installed and what version is present
-  sqlplus -s -l /nolog << EOF > /tmp/ords_version 2> /dev/null
+  sql -S -L /nolog << EOF > /tmp/ords_version 2> /dev/null
   conn ${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba
   SET LINESIZE 20000 TRIM ON TRIMSPOOL ON
   SET PAGESIZE 0

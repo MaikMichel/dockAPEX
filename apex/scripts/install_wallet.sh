@@ -139,8 +139,8 @@ set_apex_wallet_and_pwd() {
   echo "end;" >>set_apex_wallet.sql
   echo "/" >>set_apex_wallet.sql
 
-  echo "run sqlplus"
-  echo "exit" | sqlplus -L ${SQLPLUS_ARGS} @set_apex_wallet
+  echo "run sql"
+  echo "exit" | sql -L ${SQLPLUS_ARGS} @set_apex_wallet
 }
 
 
