@@ -4,7 +4,7 @@ services:
   ####        Traefik Proxy Setup           #####
   ###############################################
   traefik:
-    image: traefik:v2.10
+    image: traefik:v${TRAEFIK_VERSION}
     container_name: traefik
     restart: unless-stopped
     ports:
