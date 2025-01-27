@@ -27,7 +27,7 @@ services:
       - db_store:/opt/oracle/oradata
     hostname: apex
     healthcheck:
-      test: 'cat /opt/oracle/images/apex_version.txt | grep "${APEX_FULL_VERSION}"'
+      test: 'cat /opt/oracle/images/apex_version.js | grep "${APEX_FULL_VERSION}"'
       interval: 1m
       timeout: 30s
       retries: 45
