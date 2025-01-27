@@ -24,11 +24,10 @@ services:
     volumes:
       - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
       - apx_imgs:/opt/oracle/images
-      - apx_dir:/opt/oracle/apex-${APEX_VERSION}
       - db_store:/opt/oracle/oradata
     hostname: apex
     healthcheck:
-      test: 'cat /opt/oracle/images/apex_version.txt | grep "${APEX_VERSION}"'
+      test: 'cat /opt/oracle/images/apex_version.txt | grep "${APEX_FULL_VERSION}"'
       interval: 1m
       timeout: 30s
       retries: 45
@@ -36,8 +35,6 @@ services:
 
 volumes:
   apx_imgs:
-    driver: local
-  apx_dir:
     driver: local
 
 secrets:

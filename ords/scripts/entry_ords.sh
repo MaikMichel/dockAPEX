@@ -3,7 +3,6 @@
 ## VARS
 CONFIG_FILE="/opt/oracle/config.env"
 ORDS_IMAGE_DIR="/opt/oracle/images"
-APEX_HOME="/opt/oracle/apex-${APEX_VERSION}/apex"
 
 printf "%s%s\n" "INFO : " "This container will start a service running ORDS ${ORDS_VERSION}."
 

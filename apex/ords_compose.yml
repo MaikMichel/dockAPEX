@@ -5,4 +5,3 @@ services:
         condition: service_healthy
     volumes:
       - apx_imgs:/opt/oracle/images
-      - apx_dir:/opt/oracle/apex-${APEX_VERSION}
