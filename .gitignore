@@ -5,3 +5,6 @@
 # this one is ok
 !_template/_defaults.env
 .vscode/settings.json
+
+# comes from synology
+.DS_Store
