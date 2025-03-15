@@ -128,9 +128,9 @@ EOF
 }
 
 function install_patch() {
-  printf "%s%s\n" "INFO : " "========================================"
-  printf "%s%s\n" "INFO : " "========================================"
-  printf "%s%s\n" "INFO : " "========================================"
+  printf "%s%s\n" "INFO : " "==================================================="
+  printf "%s%s\n" "INFO : " "==================================================="
+  printf "%s%s\n" "INFO : " "==================================================="
   printf "%s%s\n" "INFO : " ""
 
 
@@ -472,14 +472,14 @@ function check_apex_version() {
 EOF
 
   # Get RPM installed version
-  YEAR=$(echo $APEX_FULL_VERSION | cut -d"." -f1)
-  QTR=$(echo $APEX_FULL_VERSION | cut -d"." -f2)
+  MAJOR=$(echo $APEX_FULL_VERSION | cut -d"." -f1)
+  MINOR=$(echo $APEX_FULL_VERSION | cut -d"." -f2)
   PATCH=$(echo $APEX_FULL_VERSION| cut -d"." -f3)
 
   # Get DB installed version
   APEX_DB_VERSION=$(cat /tmp/apex_version|grep [0-9][0-9].[1-5].[0-9] |sed '/^$/d'|sed 's/ //g')
-  DB_YEAR=$(echo $APEX_DB_VERSION | cut -d"." -f1)
-  DB_QTR=$(echo $APEX_DB_VERSION | cut -d"." -f2)
+  DB_MAJOR=$(echo $APEX_DB_VERSION | cut -d"." -f1)
+  DB_MINOR=$(echo $APEX_DB_VERSION | cut -d"." -f2)
   DB_PATCH=$(echo $APEX_DB_VERSION | cut -d"." -f3)
 
   grep "SQL Error" /tmp/apex_version > /dev/null
@@ -496,20 +496,20 @@ EOF
     if [[ "$APEX_DB_VERSION" = "$APEX_FULL_VERSION" ]]; then
       printf "%s%s\n" "INFO : " "APEX $APEX_FULL_VERSION is already installed in your database."
       INS_STATUS="INSTALLED"
-    elif [[ $DB_YEAR -gt $YEAR ]]; then
+    elif [[ $DB_MAJOR -gt $MAJOR ]]; then
       printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
-    elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -gt $QTR ]]; then
+    elif [[ $DB_MAJOR -eq $MAJOR ]] && [[ $DB_MINOR -gt $MINOR ]]; then
       printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
-    elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -eq $QTR ]] && [[ $DB_PATCH -gt $PATCH ]]; then
+    elif [[ $DB_MAJOR -eq $MAJOR ]] && [[ $DB_MINOR -eq $MINOR ]] && [[ $DB_PATCH -gt $PATCH ]]; then
       printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
-    elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -eq $QTR ]] && [[ $PATCH -gt $DB_PATCH ]]; then
-      printf "%s%s\n" "INFO : " "Your have installed APEX ($APEX_DB_VERSION) on you database but will be patched to ${APEX_FULL_VERSION}."
+    elif [[ $DB_MAJOR -eq $MAJOR ]] && [[ $DB_MINOR -eq $MINOR ]] && [[ $PATCH -gt $DB_PATCH ]]; then
+      printf "%s%s\n" "INFO : " "You have installed APEX ($APEX_DB_VERSION) on you database but will be patched to ${APEX_FULL_VERSION}."
       INS_STATUS="UPDATE"
     else
-      printf "%s%s\n" "INFO : " "Your have installed APEX ($APEX_DB_VERSION) on you database but will be upgraded to ${APEX_FULL_VERSION}."
+      printf "%s%s\n" "INFO : " "You have installed APEX ($APEX_DB_VERSION) on you database but will be upgraded to ${APEX_FULL_VERSION}."
       INS_STATUS="UPGRADE"
     fi
   else
