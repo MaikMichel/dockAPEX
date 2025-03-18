@@ -1,0 +1,94 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.0.16 Chrome/132.0.6834.196 Electron/34.2.0 Safari/537.36" version="26.0.16">
+  <diagram name="Seite-1" id="uFb1UYTKJzqbUPNzwNkK">
+    <mxGraphModel dx="1114" dy="999" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="GPUWam41NyZJBhLerxUx-1" value="Database" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="550" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-2" value="APEX 24.2.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-3" value="ORDS 24.3.0" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="40" y="410" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-4" value="TOMCAT 9.0.96" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-5" value="AOP 24.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="40" y="270" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-6" value="TRAEFIC 3.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-7" value="Database" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="250" y="550" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-8" value="APEX 24.2.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="250" y="480" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-9" value="ORDS 24.3.0" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="250" y="410" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-10" value="TOMCAT 9.0.96" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#fff2cc;strokeColor=#d6b656;shadow=0;glass=0;opacity=40;fontColor=#000000;textOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="271" y="340" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-11" value="AOP 24.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#f8cecc;strokeColor=#b85450;shadow=0;glass=0;opacity=40;fontColor=#000000;textOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="271" y="270" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-12" value="TRAEFIC 3.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#e1d5e7;strokeColor=#9673a6;shadow=0;glass=0;opacity=40;fontColor=#000000;textOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="271" y="200" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-13" value="Database" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="460" y="550" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-14" value="APEX 24.2.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="460" y="480" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-15" value="ORDS 24.3.0" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="460" y="410" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-16" value="TOMCAT 9.0.96" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#000000;opacity=40;textOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="480" y="340" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-17" value="AOP 24.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;opacity=40;textOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="480" y="270" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-18" value="TRAEFIC 3.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="460" y="200" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-19" value="Database" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=40;textOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="700" y="550" width="90" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-20" value="APEX 24.2.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="670" y="480" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-21" value="ORDS 24.3.0" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="670" y="410" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-22" value="TOMCAT 9.0.96" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#fff2cc;strokeColor=#d6b656;opacity=40;textOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="690" y="340" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-23" value="AOP 24.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#f8cecc;strokeColor=#b85450;opacity=40;textOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="690" y="270" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-24" value="TRAEFIC 3.1" style="rounded=0;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="670" y="200" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-25" value="All Options" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-26" value="Local Dev Environment" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="280" y="140" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-27" value="MVP Environment" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="490" y="140" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="GPUWam41NyZJBhLerxUx-28" value="Production Environment" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="690" y="140" width="60" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

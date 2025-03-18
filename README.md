@@ -8,7 +8,7 @@
 - APEX Office Print
 - Traefic
 
-Each component can also be omitted. This means that for a local development environment, you simply install the DB with APEX and ORDS and you're done.
+Each component can also be omitted. This means that for a local development environment, you simply install the DB with APEX and ORDS and you're done. Furthermore, you can import / run a new version of a component only by removing the respective container and replacing it with the new version.
 
 ## Preparation
 
@@ -76,10 +76,14 @@ The secrets themselves are passed on to the containers via docker secrets.
 
 ## Update / Upgrade APEX
 
-### Stop and Remove Containers
+### Stop and Remove Container and Image
 
 ```bash
-$ .dockapex/dpex.sh demo.env down
+# stop and remove apex service
+$ .dockAPEX/dpex.sh demo.env down apex
+
+# remove apex image (apex_(APEX_FULL_VERSION):demo)
+$ docker rmi apex_24.2.3:demo
 ```
 
 ### Update Konfiguration
@@ -102,15 +106,28 @@ APEX_FULL_VERSION=23.2.4
 APEX_PSET_URL="https://your-private-object-bucket-or-url/p35895964_2320_Generic.zip"
 ```
 
+> Upgrading the other containers / components works the same
+> - Stop, Remove Containers, Images
+> - Modify configurations
+> - Rebuild Image, Start Container
+>
+> **Remember: This is just docker under the hood**
+
 
 ### Rebuild
 
 ```bash
-$ .dockapex/dpex.sh demo.env up --build --force-recreate
+$ .dockapex/dpex.sh demo.env up --build --force-recreate --detach
 ```
 
 
 ## Debug / Orchestrate
+
+### View current processes
+
+```bash
+$ .dockapex/dpex.sh demo.env ps -a
+```
 
 ### View logs
 
