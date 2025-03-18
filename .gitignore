@@ -8,3 +8,6 @@
 
 # comes from synology
 .DS_Store
+
+# not included, you have to download it by yourself
+aop/db/*.sql
