@@ -261,7 +261,7 @@ function genfiles() {
   echo_info "${target_file}.env and ${target_file}.sec created"
   echo_info "Please define your configuration properties here"
 
-  write_line_if_not_exists "# do not commit your securities" ".gitignore"
+  write_line_if_not_exists "# do not commit your secrets" ".gitignore" "\n"
   write_line_if_not_exists "${target_file}.sec" ".gitignore"
 
   ls -la ${target_file}.*
