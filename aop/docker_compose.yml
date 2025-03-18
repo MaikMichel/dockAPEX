@@ -1,24 +1,23 @@
 services:
   # Official latest AOP Version
   aop:
-    image: aop_latest:${DCPAPX_PROJECT_NAME}
+    image: aop_latest_${AOP_FULL_VERSION}:${DCPAPX_PROJECT_NAME}
     labels:
       - "dockapex_config=${DCPAPX_PROJECT_NAME}"
     build:
       context: ../aop
+      args:
+        - AOP_FULL_VERSION=${AOP_FULL_VERSION}
     container_name: aop
     ports:
       - 8010:${AOP_PORT}
     restart: unless-stopped
-    depends_on:
-      database:
-        condition: service_healthy
-
-    entrypoint:
-      - /APEXOfficePrint/APEXOfficePrintLinux64
-      - -s
-      - /apexofficeprintstartup
-
+    
+    environment:
+      - DCPAPX_PROJECT_NAME=${DCPAPX_PROJECT_NAME}
+    secrets:
+      - oracle_pwd
+    
     healthcheck:
       test: curl --fail -s http://localhost:${AOP_PORT}/ || exit 1
       interval: 1m
@@ -27,6 +26,7 @@ services:
       start_period: 5m
 
     volumes:
+      - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
       - apexofficeprint:/apexofficeprintstartup
 
 
@@ -34,3 +34,7 @@ services:
 volumes:
   apexofficeprint:
     driver: local
+
+secrets:
+  oracle_pwd:
+    environment: DB_PASS    

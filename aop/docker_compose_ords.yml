@@ -1,0 +1,7 @@
+services:
+  # Official latest AOP Version
+  aop:
+    depends_on:
+      ords:
+        condition: service_healthy
+      
