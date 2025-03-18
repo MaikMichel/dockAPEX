@@ -7,14 +7,36 @@ APEX_HOME="${APEX_DIR}apex"
 APEX_IMAGES="/opt/oracle/images"
 PSET_HOME="${APEX_DIR}patchset"
 
-printf "%s%s\n" "INFO : " "This container will start a service installing APEX $APEX_FULL_VERSION."
+function output {
+  case "$1" in
+    SUCCESS)
+      printf "\e[32m%s%s\e[0m\n" "INFO : " "$2"
+      ;;
+    INFO)
+      printf "\e[94m%s%s\e[0m\n" "INFO : " "$2"
+      ;;
+    WARN)
+      printf "\e[33m%s%s\e[0m\n" "WARN : " "$2"
+      ;;
+    WAIT)
+      printf "\e[33m%s%s\e[0m\n" "WAIT : " "$2"
+      ;;
+    ERROR)
+      printf "\e[31m%s%s\e[0m\n" "ERROR: " "$2"
+      ;;
+    *)
+      printf "%s%s\n" "        " "$1"
+      ;;
+  esac  
+}
+
 
 
 function read_env_conf_file() {
   if [[ -f $CONFIG_FILE ]]; then
     source $CONFIG_FILE
   else
-    printf "\a%s%s\n" "ERROR: " "${CONFIG_FILE} not found!"
+    output "ERROR" "${CONFIG_FILE} not found!"
     exit 1
   fi
 }
@@ -29,11 +51,15 @@ function check_conn_definition() {
   fi
 
   if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
-    printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
+    output "INFO" "All Connection vars has been found in the container variables file."
     SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
+
+    if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
+      SQLPLUS_ARGS2="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB_NAME} as sysdba"
+    fi
   else
-    printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."
-    printf "%s%s\n"   "       " "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
+    output "ERROR" "NOT all vars found in the container variables file."
+    output "DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME"
     exit 1
   fi
 }
@@ -42,7 +68,7 @@ function try_connect() {
   local display_conn="${DB_USER}/*****@${DB_HOST}:${DB_PORT}/${1}"
   local value_conn="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${1}"
 
-  printf "%s%s\n" "WAIT : " "Try connection to DB: ${display_conn}"
+  output "WAIT" "Try connection to DB: ${display_conn}"
 
   COUNTER=0
   while [  $COUNTER -lt 20 ]; do
@@ -61,16 +87,16 @@ EOF
     RESULT=$?
 
     if [ ${RESULT} -eq 0 ] ; then
-      printf "%s%s\n" "INFO : " "Database connection established."
+      output "INFO" "Database connection established."
       let COUNTER=20
     else
       let COUNTER=COUNTER+1
-      printf "%s%s\n" "INFO : " "Waiting to connect for 5s ${COUNTER}/20"
+      output "INFO" "Waiting to connect for 5s ${COUNTER}/20"
       sleep 5s
 
       if [[ ${COUNTER} -eq 20 ]]; then
-        printf "\a%s%s\n" "ERROR: " "Cannot connect to database please validate Connection Vars"
-        printf "%s%s\n"   "       " "   user/password@hostname:port/service_name"
+        output "ERROR" "Cannot connect to database please validate Connection Vars"
+        output "user/password@hostname:port/service_name"
         exit 1
       fi
     fi
@@ -110,14 +136,14 @@ EOF
 function create_apex_tablespace(){
   if [[ ${APEX_CREATE_TSPACE,,} == "true" ]]; then
     cd ${APEX_HOME}
-    printf "%s%s\n" "INFO : " "Check if tablespace ${APEX_SPACE_NAME} exists"
+    output "INFO" "Check if tablespace ${APEX_SPACE_NAME} exists"
 
     RESULT=$(get_true_falsy "select tablespace_name from dba_tablespaces where tablespace_name = ''${APEX_SPACE_NAME}''")
 
     if [[ "${RESULT}" =~ "true" ]]; then
-      printf "%s%s\n" "INFO : " "Tablespace ${APEX_SPACE_NAME} allready exists, nothing to do"
+      output "INFO" "Tablespace ${APEX_SPACE_NAME} allready exists, nothing to do"
     else
-      printf "%s%s\n" "INFO : " "Creating tablespace ${APEX_SPACE_NAME} "
+      output "INFO" "Creating tablespace ${APEX_SPACE_NAME} "
       sql -S /nolog << EOF
         conn ${SQLPLUS_ARGS}
         CREATE TABLESPACE ${APEX_SPACE_NAME} DATAFILE '${APEX_CREATE_TSPACE_PATH}' SIZE 400M AUTOEXTEND ON NEXT 10M;
@@ -128,18 +154,18 @@ EOF
 }
 
 function install_patch() {
-  printf "%s%s\n" "INFO : " "==================================================="
-  printf "%s%s\n" "INFO : " "==================================================="
-  printf "%s%s\n" "INFO : " "==================================================="
-  printf "%s%s\n" "INFO : " ""
+  output "INFO" "==================================================="
+  output "INFO" "==================================================="
+  output "INFO" "==================================================="
+  output "INFO" ""
 
 
   if [[ -d ${PSET_HOME} ]]; then
-    printf "%s%s\n" "INFO : " "Patchset found"
+    output "INFO" "Patchset found"
 
     cd ${PSET_HOME}/*
 
-    printf "%s%s\n" "INFO : " "Installing PatchSet on your DB this will take a while.."
+    output "INFO" "Installing PatchSet on your DB this will take a while.."
 
     sql /nolog << EOF
     conn ${SQLPLUS_ARGS}
@@ -148,32 +174,47 @@ EOF
 
     RESULT=$?
     if [[ ${RESULT} -eq 0 ]] ; then
-      printf "%s%s\n" "INFO : " "PatchSet has been installed."
+      output "INFO" "PatchSet has been installed."
     else
-      printf "\a%s%s\n" "ERROR: " "PatchSet installation failed"
+      output "ERROR" "PatchSet installation failed"
       exit 1
     fi
+
+    if [[ ${APEX_SECND_PDB,,} == "true" ]] && [[ ${INS_STATUS} != "FRESH" ]]; then
+      sql /nolog << EOF
+      conn ${SQLPLUS_ARGS2}
+      @catpatch
+EOF
+
+      RESULT=$?
+      if [[ ${RESULT} -eq 0 ]] ; then
+        output "INFO" "PatchSet has been installed on ${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB_NAME}"
+      else
+        output "ERROR" "PatchSet installation failed on ${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB_NAME}"
+        exit 1
+      fi
+    fi
   else
-    printf "%s%s\n" "INFO : " "No Patchset to install found"
+    output "INFO" "No Patchset to install found"
   fi
 }
 
 function install_patch_images() {
   if [[ -d ${PSET_HOME} ]]; then
-    printf "%s%s\n" "INFO : " "Copy PSet static files to ${APEX_IMAGES}"
+    output "INFO" "Copy PSet static files to ${APEX_IMAGES}"
 
     cp -rf ${PSET_HOME}/*/images/* ${APEX_IMAGES}
-    printf "%s%s\n" "INFO : " "PSet static files have been copied."
+    output "INFO" "PSet static files have been copied."
 
   else
-    printf "%s%s\n" "INFO : " "No Patchset to install found"
+    output "INFO" "No Patchset to install found"
   fi
 }
 
 function set_image_prefix () {
   # set image-prexix
   if [[ ! -z ${APEX_IMAGE_PREFIX} ]]; then
-    printf "%s%s\n" "INFO : " "Setting image prefix to ${APEX_IMAGE_PREFIX}"
+    output "INFO" "Setting image prefix to ${APEX_IMAGE_PREFIX}"
     cd ${APEX_HOME}/utilities
 
     sql /nolog << EOF
@@ -181,16 +222,22 @@ function set_image_prefix () {
     @reset_image_prefix_core.sql ${APEX_IMAGE_PREFIX}
 EOF
 
+    if [[ ${APEX_SECND_PDB,,} == "true" ]] && [[ ${INS_STATUS} != "FRESH" ]]; then
+      sql /nolog << EOF
+      conn ${SQLPLUS_ARGS2}
+      @reset_image_prefix_core.sql ${APEX_IMAGE_PREFIX}
+EOF
+    fi
   fi
 }
 
 function install_apex() {
-  printf "%s%s\n" "INFO : " "==================================================="
-  printf "%s%s\n" "INFO : " "==================================================="
-  printf "%s%s\n" "INFO : " "==================================================="
+  output "INFO" "==================================================="
+  output "INFO" "==================================================="
+  output "INFO" "==================================================="
 
   if [[ -f ${APEX_HOME}/apexins.sql ]]; then
-    printf "%s%s\n" "INFO : " "Installing APEX on your DB please this will take a while."
+    output "INFO" "Installing APEX on your DB please this will take a while."
 
     cd ${APEX_HOME}
     sql /nolog<< EOF
@@ -201,27 +248,43 @@ EOF
 
     RESULT=$?
     if [ ${RESULT} -eq 0 ] ; then
-      printf "%s%s\n" "INFO : " "APEX has been installed."
+      output "INFO" "APEX has been installed."
     else
-      printf "\a%s%s\n" "ERROR: " "APEX installation failed"
+      output "ERROR" "APEX installation failed"
       exit 1
     fi
+
+    # 2nd PDB and this is not a fresh install
+    if [[ ${APEX_SECND_PDB,,} == "true" ]] && [[ ${INS_STATUS} != "FRESH" ]]; then
+      sql /nolog<< EOF
+      conn ${SQLPLUS_ARGS2}
+      @apexins ${APEX_SPACE_NAME} ${APEX_SPACE_NAME} TEMP /i/
+
+EOF
+      RESULT=$?
+      if [ ${RESULT} -eq 0 ] ; then
+        output "INFO" "APEX on ${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB_NAME} has been installed."
+      else
+        output "ERROR" "APEX on ${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB_NAME} installation failed"
+        exit 1
+      fi
+    fi
   else
-    printf "\a%s%s\n" "ERROR: " "APEX installation script missing."
+    output "ERROR" "APEX installation script missing."
     exit 1
   fi
 }
 
 function install_apex_images() {
   if [[ -f ${APEX_HOME}/apexins.sql ]]; then
-    printf "%s%s\n" "INFO : " "Copy APEX static files to ${APEX_IMAGES}"
+    output "INFO" "Copy APEX static files to ${APEX_IMAGES}"
 
     rm -rf ${APEX_IMAGES}/*
     cp -rf ${APEX_HOME}/images/* ${APEX_IMAGES}
 
-    printf "%s%s\n" "INFO : " "APEX static files has been copied."
+    output "INFO" "APEX static files has been copied."
   else
-    printf "\a%s%s\n" "ERROR: " "APEX installation script missing."
+    output "ERROR" "APEX installation script missing."
     exit 1
   fi
 }
@@ -391,27 +454,27 @@ EOF
 
       RESULT=$?
       if [ ${RESULT} -eq 0 ] ; then
-        printf "%s%s\n" "INFO : " "APEX has been configured and APEX ADMIN password initally set to 'Welcome_01!'."
-        printf "%s%s\n" "INFO : " "Use below login credentials to first time login to APEX service:"
-        printf "%s%s\n" "       " "  Workspace: internal"
-        printf "%s%s\n" "       " "  User:      admin"
-        printf "%s%s\n" "       " "  Password:  Welcome_01!"
+        output "INFO" "APEX has been configured and APEX ADMIN password initally set to 'Welcome_01!'."
+        output "INFO" "Use below login credentials to first time login to APEX service:"
+        output "  Workspace: internal"
+        output "  User:      admin"
+        output "  Password:  Welcome_01!"
       else
-        printf "\a%s%s\n" "ERROR : " "APEX config failed."
+        output "ERROR" "APEX config failed."
         exit 1
       fi
     else
-      printf "\a%s%s\n" "ERROR: " "APEX installation script missing."
+      output "ERROR" "APEX installation script missing."
       exit 1
     fi
   else
-    printf "\a%s%s\n" "INFO: " "NO Fresh installation, nothing configured."
+    output "INFO" "NO Fresh installation, nothing configured."
   fi # fresh
 }
 
 function check_second_bdb(){
   if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
-    printf "%s%s\n" "INFO : " "Cloning to ${DB_NAME} to ${APEX_SECND_PDB_NAME}"
+    output "INFO" "Cloning to ${DB_NAME} to ${APEX_SECND_PDB_NAME}"
 
     sql -S $SQLPLUS_ARGS <<EOF
     alter session set container=cdb\$root;
@@ -426,9 +489,9 @@ EOF
 
     RESULT=$?
     if [ ${RESULT} -eq 0 ] ; then
-      printf "%s%s\n" "INFO : " "${DB_NAME} has been successfully cloned to ${APEX_SECND_PDB_NAME}"
+      output "INFO" "${DB_NAME} has been successfully cloned to ${APEX_SECND_PDB_NAME}"
     else
-      printf "\a%s%s\n" "ERROR: " "Cloning failed failed"
+      output "ERROR" "Cloning failed failed"
       exit 1
     fi
 
@@ -486,7 +549,7 @@ EOF
   RESULT=$?
 
   if [[ ${RESULT} -eq 0 ]]; then
-    printf "\a%s%s\n" "ERROR: " "Please validate the database status."
+    output "ERROR" "Please validate the database status."
     grep "SQL Error" /tmp/apex_version
     exit 1
   fi
@@ -494,26 +557,26 @@ EOF
   if [[ -n "$APEX_DB_VERSION" ]]; then
     # Validate if an upgrade needed
     if [[ "$APEX_DB_VERSION" = "$APEX_FULL_VERSION" ]]; then
-      printf "%s%s\n" "INFO : " "APEX $APEX_FULL_VERSION is already installed in your database."
+      output "INFO" "APEX $APEX_FULL_VERSION is already installed in your database."
       INS_STATUS="INSTALLED"
     elif [[ $DB_MAJOR -gt $MAJOR ]]; then
-      printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
+      output "ERROR" "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
     elif [[ $DB_MAJOR -eq $MAJOR ]] && [[ $DB_MINOR -gt $MINOR ]]; then
-      printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
+      output "ERROR" "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
     elif [[ $DB_MAJOR -eq $MAJOR ]] && [[ $DB_MINOR -eq $MINOR ]] && [[ $DB_PATCH -gt $PATCH ]]; then
-      printf "\a%s%s\n" "ERROR: " "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
+      output "ERROR" "A newer APEX version ($APEX_DB_VERSION) is already installed in your database. The APEX version in this container is ${APEX_FULL_VERSION}. Stopping the container."
       exit 1
     elif [[ $DB_MAJOR -eq $MAJOR ]] && [[ $DB_MINOR -eq $MINOR ]] && [[ $PATCH -gt $DB_PATCH ]]; then
-      printf "%s%s\n" "INFO : " "You have installed APEX ($APEX_DB_VERSION) on you database but will be patched to ${APEX_FULL_VERSION}."
+      output "INFO" "You have installed APEX ($APEX_DB_VERSION) on you database but will be patched to ${APEX_FULL_VERSION}."
       INS_STATUS="UPDATE"
     else
-      printf "%s%s\n" "INFO : " "You have installed APEX ($APEX_DB_VERSION) on you database but will be upgraded to ${APEX_FULL_VERSION}."
+      output "INFO" "You have installed APEX ($APEX_DB_VERSION) on you database but will be upgraded to ${APEX_FULL_VERSION}."
       INS_STATUS="UPGRADE"
     fi
   else
-    printf "%s%s\n" "INFO : " "APEX is not installed on your database."
+    output "INFO" "APEX is not installed on your database."
     INS_STATUS="FRESH"
   fi
 }
@@ -523,23 +586,23 @@ function check_unpack_apex() {
   [[ -d ${APEX_DIR} ]] || mkdir -p ${APEX_DIR}
 
   if [[ ! -d "${APEX_DIR}apex" ]]; then
-    printf "%s%s\n" "INFO : " "APEX Directory (${APEX_DIR}apex) not found"
+    output "INFO" "APEX Directory (${APEX_DIR}apex) not found"
 
     cd ${APEX_DIR}
 
     # check if FILE exists
     if [[ -f "/tmp/apex_${APEX_VERSION}.zip" ]]; then
-      printf "%s%s\n" "INFO : " "unzipping apex_${APEX_VERSION}.zip"
+      output "INFO" "unzipping apex_${APEX_VERSION}.zip"
       unzip -oq "/tmp/apex_${APEX_VERSION}.zip"
     fi
 
     if [[ -f "/tmp/apex_patch_${APEX_FULL_VERSION}.zip" ]]; then
-      printf "%s%s\n" "INFO : " "unzipping apex_patch_${APEX_FULL_VERSION}.zip"
+      output "INFO" "unzipping apex_patch_${APEX_FULL_VERSION}.zip"
       unzip -oq "/tmp/apex_patch_${APEX_FULL_VERSION}.zip" -d "patchset"
     fi
 
   else
-    printf "%s%s\n" "INFO : " "APEX Directory (${APEX_DIR}apex) exists"
+    output "INFO" "APEX Directory (${APEX_DIR}apex) exists"
   fi
 }
 
@@ -558,15 +621,17 @@ function run_script() {
     # install or upgrade when needed
     if [[ ${INS_STATUS} == "FRESH" ]] || [[ ${INS_STATUS} == "UPGRADE" ]] || [[ ${INS_STATUS} == "UPDATE" ]]; then
       apex_install
-      printf "%s%s\n" "INFO : " "APEX was successfully installed"
+      output "INFO" "APEX was successfully installed"
     fi
   else
-    printf "\a%s%s\n" "WARN : " "Configuration ${CONFIG_FILE} NOT found"
+    output "WARN" "Configuration ${CONFIG_FILE} NOT found"
   fi
 }
 
 # read all conf params from mounted file
 read_env_conf_file
+
+output "INFO" "This container will start a service installing APEX $APEX_FULL_VERSION."
 
 # execute everything we need
 run_script

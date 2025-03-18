@@ -4,13 +4,35 @@
 CONFIG_FILE="/opt/oracle/config.env"
 ORDS_IMAGE_DIR="/opt/oracle/images"
 
-printf "%s%s\n" "INFO : " "This container will start a service running ORDS ${ORDS_VERSION}."
+function output {
+  case "$1" in
+    SUCCESS)
+      printf "\e[32m%s%s\e[0m\n" "INFO : " "$2"
+      ;;
+    INFO)
+      printf "\e[94m%s%s\e[0m\n" "INFO : " "$2"
+      ;;
+    WARN)
+      printf "\e[33m%s%s\e[0m\n" "WARN : " "$2"
+      ;;
+    WAIT)
+      printf "\e[33m%s%s\e[0m\n" "WAIT : " "$2"
+      ;;
+    ERROR)
+      printf "\e[31m%s%s\e[0m\n" "ERROR: " "$2"
+      ;;
+    *)
+      printf "%s%s\n" "        " "$1"
+      ;;
+  esac  
+}
+
 
 function read_env_conf_file() {
   if [[ -f $CONFIG_FILE ]]; then
     source $CONFIG_FILE
   else
-    printf "\a%s%s\n" "ERROR: " "${CONFIG_FILE} not found!"
+    output "ERROR" "${CONFIG_FILE} not found!"
     exit 1
   fi
 }
@@ -23,14 +45,14 @@ function check_conn_definition() {
   ORDS_PASSWORD=$(<"/run/secrets/ords_pwd")
 
   if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
-    printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
+    output "INFO" "All Connection vars has been found in the container variables file."
     SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
     if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
       SQLPLUS_ARGS2="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${APEX_SECND_PDB_NAME} as sysdba"
     fi
   else
-    printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."
-    printf "%s%s\n"   "       " "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
+    output "ERROR" "NOT all vars found in the container variables file."
+    output " DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME"
     exit 1
   fi
 }
@@ -39,7 +61,7 @@ function try_connect() {
   local display_conn="${DB_USER}/*****@${DB_HOST}:${DB_PORT}/${1}"
   local value_conn="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${1}"
 
-  printf "%s%s\n" "WAIT : " "Try connection to DB: ${display_conn}"
+  output "WAIT" "Try connection to DB: ${display_conn}"
 
   COUNTER=0
   while [  $COUNTER -lt 20 ]; do
@@ -58,16 +80,16 @@ EOF
     RESULT=$?
 
     if [ ${RESULT} -eq 0 ] ; then
-      printf "%s%s\n" "INFO : " "Database connection established."
+      output "INFO" "Database connection established."
       let COUNTER=20
     else
       let COUNTER=COUNTER+1
-      printf "%s%s\n" "INFO : " "Waiting to connect for 5s ${COUNTER}/20"
+      output "INFO" "Waiting to connect for 5s ${COUNTER}/20"
       sleep 5s
 
       if [[ ${COUNTER} -eq 20 ]]; then
-        printf "\a%s%s\n" "ERROR: " "Cannot connect to database please validate Connection Vars"
-        printf "%s%s\n"   "       " "   user/password@hostname:port/service_name"
+        output "ERROR" "Cannot connect to database please validate Connection Vars"
+        output " user/password@hostname:port/service_name"
         exit 1
       fi
     fi
@@ -88,14 +110,14 @@ function check_database() {
 }
 
 function install_ords() {
-  printf "%s%s\n" "INFO : " "========================================"
-  printf "%s%s\n" "INFO : " "========================================"
-  printf "%s%s\n" "INFO : " "========================================"
-  printf "%s%s\n" "INFO : " ""
+  output "INFO" "========================================"
+  output "INFO" "========================================"
+  output "INFO" "========================================"
+  output "INFO" ""
 
   APEX_PROXIED=""
   if [[ "$APEX" == true ]]; then
-    printf "%s%s\n" "INFO : " "Config APEX_PUBLIC_USER"
+    output "INFO" "Config APEX_PUBLIC_USER"
 
     sql /nolog << EOF
       conn ${SQLPLUS_ARGS}
@@ -126,7 +148,7 @@ EOF
 
   if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
     if [[ "$APEX" == true ]]; then
-      printf "%s%s\n" "INFO : " "Config APEX_PUBLIC_USER in second PDB"
+      output "INFO" "Config APEX_PUBLIC_USER in second PDB"
 
       sql /nolog << EOF
       conn ${SQLPLUS_ARGS2}
@@ -186,28 +208,36 @@ EOF
   DB_QTR=$(echo $ORDS_DB_VERSION | cut -d"." -f2)
   DB_PATCH=$(echo $ORDS_DB_VERSION | cut -d"." -f3)
 
+  grep "Error at" /tmp/ords_version > /dev/null
+  RESULT=$?
 
-  if [[ -n "$ORDS_DB_VERSION" ]]; then
-    # Validate if an upgrade needed
-    if [[ "$ORDS_DB_VERSION" = "$ORDS_VERSION" ]]; then
-      printf "%s%s\n" "INFO : " "ORDS $ORDS_VERSION is already installed in your database."
-      INS_STATUS="INSTALLED"
-    elif [[ $DB_YEAR -gt $YEAR ]]; then
-      printf "\a%s%s\n" "ERROR: " "A newer ORDS version ($ORDS_DB_VERSION) is already installed in your database. The ORDS version in this container is ${ORDS_VERSION}. Stopping the container."
-      exit 1
-    elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -gt $QTR ]]; then
-      printf "\a%s%s\n" "ERROR: " "A newer ORDS version ($ORDS_DB_VERSION) is already installed in your database. The ORDS version in this container is ${ORDS_VERSION}. Stopping the container."
-      exit 1
-    elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -eq $QTR ]] && [[ $DB_PATCH -gt $PATCH ]]; then
-      printf "\a%s%s\n" "ERROR: " "A newer ORDS version ($ORDS_DB_VERSION) is already installed in your database. The ORDS version in this container is ${ORDS_VERSION}. Stopping the container."
-      exit 1
-    else
-      printf "%s%s\n" "INFO : " "Your have installed ORDS ($ORDS_DB_VERSION) on you database but will be upgraded to ${ORDS_VERSION}."
-      INS_STATUS="UPGRADE"
-    fi
-  else
-    printf "%s%s\n" "INFO : " "ORDS is not installed on your database."
+  if [[ ${RESULT} -eq 0 ]]; then
+    output "ERROR" "AOP Version could not be determined in ${DB_NAME}"      
     INS_STATUS="FRESH"
+  else
+
+    if [[ -n "$ORDS_DB_VERSION" ]]; then
+      # Validate if an upgrade needed
+      if [[ "$ORDS_DB_VERSION" = "$ORDS_VERSION" ]]; then
+        output "INFO" "ORDS $ORDS_VERSION is already installed in your database."
+        INS_STATUS="INSTALLED"
+      elif [[ $DB_YEAR -gt $YEAR ]]; then
+        output "ERROR" "A newer ORDS version ($ORDS_DB_VERSION) is already installed in your database. The ORDS version in this container is ${ORDS_VERSION}. Stopping the container."
+        exit 1
+      elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -gt $QTR ]]; then
+        output "ERROR" "A newer ORDS version ($ORDS_DB_VERSION) is already installed in your database. The ORDS version in this container is ${ORDS_VERSION}. Stopping the container."
+        exit 1
+      elif [[ $DB_YEAR -eq $YEAR ]] && [[ $DB_QTR -eq $QTR ]] && [[ $DB_PATCH -gt $PATCH ]]; then
+        output "ERROR" "A newer ORDS version ($ORDS_DB_VERSION) is already installed in your database. The ORDS version in this container is ${ORDS_VERSION}. Stopping the container."
+        exit 1
+      else
+        output "INFO" "Your have installed ORDS ($ORDS_DB_VERSION) on you database but will be upgraded to ${ORDS_VERSION}."
+        INS_STATUS="UPGRADE"
+      fi
+    else
+      output "INFO" "ORDS is not installed on your database."
+      INS_STATUS="FRESH"
+    fi
   fi
 }
 
@@ -218,25 +248,24 @@ function run_ords() {
     DB_HOST=$(grep db.hostname $ORDS_CONF_DIR/databases/default/pool.xml|cut -d">" -f2|cut -d"<" -f1)
     DB_PORT=$(grep db.port $ORDS_CONF_DIR/databases/default/pool.xml|cut -d">" -f2|cut -d"<" -f1)
     DB_NAME=$(grep db.servicename $ORDS_CONF_DIR/databases/default/pool.xml|cut -d">" -f2|cut -d"<" -f1)
-    printf "%s%s\n" "INFO : " "Starting the ORDS services with the following database details:"
-    printf "%s%s\n" "INFO : " "  ${DB_HOST}:${DB_PORT}/${DB_NAME}."
+    output "INFO" "Starting the ORDS services with the following database details:"
+    output "INFO" "  ${DB_HOST}:${DB_PORT}/${DB_NAME}."
   else
-    printf "%s%s\n" "INFO : " "Starting the ORDS services."
+    output "INFO" "Starting the ORDS services."
   fi
 
   # ping DYNDNS to set IP
   if [[ "$ORDS_DDNS" == true ]] && [[ -n ${ORDS_DDNS_USER} ]] && [[ -n ${ORDS_DDNS_URL} ]] ; then
     if [[ -f "/run/secrets/ddns_pwd" ]]; then
       ORDS_DDNS_PASSWORD=$(<"/run/secrets/ddns_pwd")
-      printf "%s%s\n" "INFO : " "DynDNS Configuration found, curling to: ${ORDS_DDNS_URL}"
+      output "INFO" "DynDNS Configuration found, curling to: ${ORDS_DDNS_URL}"
       curl https://${ORDS_DDNS_USER}:${ORDS_DDNS_PASSWORD}@${ORDS_DDNS_URL}
     fi
   fi
-
-  printf "\a%s%s\n" "DEBG : " "TOMCAT = ${TOMCAT,,}"
+  
   # Start serving or let TOMCAT to that
   if [[ ${TOMCAT,,} != "true" ]]; then
-    printf "\a%s%s\n" "INFO : " "ORDS will serve ..."
+    output "INFO" "ORDS will serve ..."
 
     [[ -d ${ORDS_IMAGE_DIR} ]] || mkdir -p ${ORDS_IMAGE_DIR}
     echo "Mode for ORDS = 'ORDS'" > "${ORDS_IMAGE_DIR}/ords_mode.txt"
@@ -253,7 +282,7 @@ function run_ords() {
       ${ORDS_DIR}bin/ords --config $ORDS_CONF_DIR serve --port 8080 ${ORDS_IMAGE_ARG}
     fi
   else
-    printf "\a%s%s\n" "INFO : " "Tomcat for the win ..."
+    output "INFO" "Tomcat for the win ..."
     echo "Mode for ORDS = 'TOMCAT'" > "${ORDS_IMAGE_DIR}/ords_mode.txt"
   fi
 }
@@ -266,14 +295,14 @@ function unpack_ords() {
 
   # check if FILE exists
   if [[ -f "ords-${ORDS_FULL_VERSION}.zip" ]]; then
-    printf "%s%s\n" "INFO : " "ords-${ORDS_FULL_VERSION}.zip"
+    output "INFO" "ords-${ORDS_FULL_VERSION}.zip"
     unzip -oq ords-${ORDS_FULL_VERSION}.zip
     rm ords-${ORDS_FULL_VERSION}.zip
     chmod +x bin/ords
   fi
 
   if [[ -f "apex_patch.zip" ]]; then
-    printf "%s%s\n" "INFO : " "unzipping apex_patch.zip"
+    output "INFO" "unzipping apex_patch.zip"
     unzip -oq "apex_patch.zip" -d "patchset"
     rm "apex_patch.zip"
   fi
@@ -282,15 +311,15 @@ function unpack_ords() {
 function run_script() {
   # check if we have tu unzip
   if [[ ! -d "${ORDS_DIR}bin" ]]; then
-    printf "%s%s\n" "INFO : " "ORDS Directory not found"
+    output "INFO" "ORDS Directory not found"
     unpack_ords;
   else
-    printf "%s%s\n" "INFO : " "ORDS Directory exists"
+    output "INFO" "ORDS Directory exists"
   fi
 
   # Did we already configure ORDS?
   if [ -e $ORDS_CONF_DIR/databases/default/pool.xml ]; then
-    printf "\a%s%s\n" "INFO : " "Running ORDS with configuration found in $ORDS_CONF_DIR/databases/default/pool.xml"
+    output "INFO" "Running ORDS with configuration found in $ORDS_CONF_DIR/databases/default/pool.xml"
     run_ords
   else
     # Not configured yet, so we have to
@@ -308,7 +337,7 @@ function run_script() {
 
       run_ords
     else
-      printf "\a%s%s\n" "WARN : " "Nothing configured jet"
+      output "WARN" "Nothing configured jet"
     fi
   fi
 
@@ -316,6 +345,8 @@ function run_script() {
 
 # read all conf params from mounted file
 read_env_conf_file
+
+output "INFO" "This container will start a service running ORDS ${ORDS_VERSION}."
 
 # execute everything we need
 run_script

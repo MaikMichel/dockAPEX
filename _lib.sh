@@ -14,41 +14,57 @@ CYAN="\033[0;36m"
 BCYAN="\033[1;36m"
 BORANGE="\e[38;5;208m"
 
+function output {
+  case "$1" in
+    SUCCESS)
+      printf "\e[32m%s%s\e[0m\n" "INFO : " "$2"
+      ;;
+    INFO)
+      printf "\e[94m%s%s\e[0m\n" "INFO : " "$2"
+      ;;
+    WARN)
+      printf "\e[33m%s%s\e[0m\n" "WARN : " "$2"
+      ;;
+    WAIT)
+      printf "\e[33m%s%s\e[0m\n" "WAIT : " "$2"
+      ;;
+    ERROR)
+      printf "\e[31m%s%s\e[0m\n" "ERROR: " "$2"
+      ;;
+    FATAL)
+      printf "\e[41;97m%s%s\e[0m\n" "FATAL: " "$2"      
+      ;;
+    *)
+      printf "%s%s\n" "        " "$1"
+      ;;
+  esac  
+}
+
 
 function echo_fatal() {
-  local prompt_text=$1
-
-  echo -e "${REDB}$prompt_text${NC}"
+  output "FATAL" "$1"
 }
 
 function echo_error() {
-  local prompt_text=$1
-
-  echo -e "${REDF}Error:${NC} ${RED}$prompt_text${NC}"
+  output "ERROR" "$1"
 }
 
 function echo_success() {
-  local prompt_text=$1
-
-  echo -e "${GREEN}$prompt_text${NC}"
+  output "SUCCESS" "$1"
 }
 
 function echo_warning() {
-  local prompt_text=$1
-
-  echo -e "${YELLOW}$prompt_text${NC}"
+  output "WARN" "$1"
 }
 
 function echo_info() {
-  local prompt_text=$1
-
-  echo -e "${CYAN}$prompt_text${NC}"
+ output "INFO" "$1"
 }
 
 function ask_with_yes_no() {
     local question="${1}"
-
-    read -r -p "$(echo -e "${BORANGE}${question}${NC} (y/n)" ) " -n 1
+    
+    read -r -p "$(printf "%b" "${BORANGE}${question}${NC} (y/n) " ) " -n 1
     echo
 
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -94,4 +110,21 @@ function write_line_if_not_exists () {
   else
     echo "$line" >> "$file"
   fi
+}
+
+function render_template() {
+  local template="$1"
+  local output="$2"
+  
+  awk '
+  {
+    while (match($0, /\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/)) {
+      var = substr($0, RSTART+1, RLENGTH-1)
+      gsub(/[\{\}]/, "", var)
+      val = ENVIRON[var]
+      $0 = substr($0, 1, RSTART - 1) val substr($0, RSTART + RLENGTH)
+    }
+    print
+  }
+' ${template} > ${output}
 }

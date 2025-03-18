@@ -93,6 +93,14 @@ if [[ ! -d ".git" ]]; then
   echo
 fi
 
+# add *.sec to .gitignore
+if [[ ! -f ".gitignore" ]]; then
+  touch .gitignore  
+fi
+echo -e "# do not commit your secrets" > .gitignore
+echo -e "*.sec" >> .gitignore
+echo
+
 echo -e "${CYAN}clone dockAPEX as submodule${NC}"
 git submodule add https://github.com/MaikMichel/dockAPEX.git .dockAPEX
 echo

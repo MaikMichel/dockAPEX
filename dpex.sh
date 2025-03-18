@@ -30,11 +30,11 @@ function usage() {
   echo "-----------------------------------------------------"
   echo ""
   echo "  examples: "
-  echo "    ./$0 demo.env genfiles"
-  echo "    ./$0 demo.env up --build --detach"
-  echo "    ./$0 demo.env ps -a"
-  echo "    ./$0 demo.env down"
-  echo "    ./$0 demo.env clear"
+  echo "    $0 demo.env genfiles"
+  echo "    $0 demo.env up --build --detach"
+  echo "    $0 demo.env ps -a"
+  echo "    $0 demo.env down"
+  echo "    $0 demo.env clear"
   echo ""
   echo "-----------------------------------------------------"
   echo
@@ -123,60 +123,77 @@ fi
 
 DCKAPX_COMP_FILES=""
 
-# validate global required params
+# check only when argument 2 is not genfiles
+if [[ ${2} != "genfiles" ]]; then  
+  # validate global required params
+  ## DB Params are required, when any of DB, APEX, ORDS are set
+  if [[ "$DB" == true ]] || [[ "$APEX" == true ]] || [[ "$ORDS" == true ]]; then
+    check_params "DB_USER" "DB_HOST" "DB_PORT" "DB_NAME"
+    check_secret "DB_PASS"
+  fi
 
-## DB Params are required, when any of DB, APEX, ORDS are set
-if [[ "$DB" == true ]] || [[ "$APEX" == true ]] || [[ "$ORDS" == true ]]; then
-  check_params "DB_USER" "DB_HOST" "DB_PORT" "DB_NAME"
-  check_secret "DB_PASS"
-fi
 
+  if [[ "$DB" == true ]]; then
+    DCKAPX_COMP_FILES+="-f ${path_ref}database/docker_compose.yml "
+  fi
 
-if [[ "$DB" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ${path_ref}database/docker_compose.yml "
-fi
+  if [[ "$APEX" == true ]]; then
+    DCKAPX_COMP_FILES+="-f ${path_ref}apex/docker_compose.yml "
 
-if [[ "$APEX" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ${path_ref}apex/docker_compose.yml "
+    validate_apex_params
 
-  validate_apex_params
+    if [[ "$DB" == true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}apex/docker_compose_db.yml "
+    fi
+
+    if [[ "$ORDS" == true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}apex/docker_compose_ords.yml "
+    fi
+  fi
 
   if [[ "$ORDS" == true ]]; then
-    DCKAPX_COMP_FILES+="-f ${path_ref}apex/ords_compose.yml "
+    DCKAPX_COMP_FILES+="-f ${path_ref}ords/docker_compose.yml "
+
+    validate_ords_params
+
+    if [[ "$DB" == true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}ords/docker_compose_db.yml "
+    fi
+   
+    if [[ "$TRAEFIK" == true ]] && [[ "$TOMCAT" != true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}ords/docker_compose_traefik.yml "
+    fi
   fi
-fi
 
-if [[ "$ORDS" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ${path_ref}ords/docker_compose.yml "
+  if [[ "$TOMCAT" == true ]]; then
+    DCKAPX_COMP_FILES+="-f ${path_ref}tomcat/docker_compose.yml "
 
-  validate_ords_params
+    validate_tcat_params
 
-  if [[ "$TRAEFIK" == true ]] && [[ "$TOMCAT" != true ]]; then
-    DCKAPX_COMP_FILES+="-f ${path_ref}ords/traefik_compose.yml "
+    if [[ "$TRAEFIK" == true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}tomcat/docker_compose_traefik.yml "
+    fi
   fi
-fi
 
-if [[ "$TOMCAT" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ${path_ref}tomcat/docker_compose.yml "
+  if [[ "$AOP" == true ]]; then
+    DCKAPX_COMP_FILES+="-f ${path_ref}aop/docker_compose.yml "
 
-  validate_tcat_params
+    validate_aop_params
+
+    if [[ "$DB" == true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}aop/docker_compose_db.yml "
+    fi
+
+    if [[ "$ORDS" == true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}aop/docker_compose_ords.yml "
+    fi
+
+  fi
 
   if [[ "$TRAEFIK" == true ]]; then
-    DCKAPX_COMP_FILES+="-f ${path_ref}tomcat/traefik_compose.yml "
+    DCKAPX_COMP_FILES+="-f ${path_ref}traefik/docker_compose.yml "
   fi
 fi
-
-if [[ "$AOP" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ${path_ref}aop/docker_compose.yml "
-
-  validate_aop_params
-fi
-
-if [[ "$TRAEFIK" == true ]]; then
-  DCKAPX_COMP_FILES+="-f ${path_ref}traefik/docker_compose.yml "
-fi
-
-
 
 # arg1 => file, entfernen, den Rest geben wir an compose weiter
 shift
@@ -227,11 +244,19 @@ function genfiles() {
   [[ -f "${target_file}.sec" ]] && mv "${target_file}.sec" "${target_file}.sec.old"
 
   # write vars to target files
-  envsubst < "${path_ref}_template/_template_env" > "${target_file}.env"
-  envsubst < "${path_ref}_template/_template_sec" > "${target_file}.sec"
+  if [[ -z "$ZSH_VERSION" ]]; then
+    render_template "${path_ref}_template/_template_env" "${target_file}.env"
+    render_template "${path_ref}_template/_template_sec" "${target_file}.sec"
 
-  sed -i '1,2d' "${target_file}.env"
-  sed -i '1,2d' "${target_file}.sec"
+    sed -i '' '1,2d' "${target_file}.env"
+    sed -i '' '1,2d' "${target_file}.sec"
+  else  
+    envsubst < "${path_ref}_template/_template_env" > "${target_file}.env"
+    envsubst < "${path_ref}_template/_template_sec" > "${target_file}.sec"
+
+    sed -i '1,2d' "${target_file}.env"
+    sed -i '1,2d' "${target_file}.sec"
+  fi
 
   echo_info "${target_file}.env and ${target_file}.sec created"
   echo_info "Please define your configuration properties here"

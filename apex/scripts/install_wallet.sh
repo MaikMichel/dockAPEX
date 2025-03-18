@@ -3,23 +3,46 @@
 
 CONN_STRING_FILE="/opt/oracle/config.env"
 
+function output {
+  case "$1" in
+    SUCCESS)
+      printf "\e[32m%s%s\e[0m\n" "INFO : " "$2"
+      ;;
+    INFO)
+      printf "\e[94m%s%s\e[0m\n" "INFO : " "$2"
+      ;;
+    WARN)
+      printf "\e[33m%s%s\e[0m\n" "WARN : " "$2"
+      ;;
+    WAIT)
+      printf "\e[33m%s%s\e[0m\n" "WAIT : " "$2"
+      ;;
+    ERROR)
+      printf "\e[31m%s%s\e[0m\n" "ERROR: " "$2"
+      ;;
+    *)
+      printf "%s%s\n" "        " "$1"
+      ;;
+  esac  
+}
+
 if [[ -f $CONN_STRING_FILE ]]; then
   source ${CONN_STRING_FILE}
   DB_PASS=$(<"/run/secrets/oracle_pwd")
 
   SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
   if [[ -n "$DB_USER" ]] && [[ -n "$DB_PASS" ]] && [[ -n "$DB_HOST" ]]  && [[ -n "$DB_PORT" ]]  && [[ -n "$DB_NAME" ]] ; then
-    printf "%s%s\n" "INFO : " "All Connection vars has been found in the container variables file."
+    output "INFO" "All Connection vars has been found in the container variables file."
     SQLPLUS_ARGS="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME} as sysdba"
   else
-    printf "\a%s%s\n" "ERROR: " "NOT all vars found in the container variables file."
-    printf "%s%s\n"   "       " "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
+    output "ERROR" "NOT all vars found in the container variables file."
+    output "   DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME     "
     exit 1
   fi
 else
-  printf "\a%s%s\n" "ERROR: " "${CONN_STRING_FILE} has not added, create a file with following vars"
-  printf "\a%s%s\n" "       " "  DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME variables"
-  printf "\a%s%s\n" "       " "  and added as docker volume:"
+  output "ERROR" "${CONN_STRING_FILE} has not added, create a file with following vars"
+  output "  DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME variables"
+  output "  and added as docker volume:"
   exit 1
 fi
 
@@ -51,7 +74,7 @@ create_folders() {
 # Get mozilla resources & scripts
 fetch_scripts() {
     echo ""
-    echo "**** Fetching script & certificates data from mozilla ****"
+    output "INFO" "**** Fetching script & certificates data from mozilla ****"
     curl -O https://raw.githubusercontent.com/alpinelinux/ca-certificates/3184fe80e403b9dc6d5fe3b7ebcd9d375363e2e4/certdata2pem.py
     curl -O https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
     curl -O https://git.launchpad.net/ubuntu/+source/ca-certificates/plain/mozilla/blacklist.txt
@@ -62,7 +85,7 @@ fetch_scripts() {
 # python3.8 certdata2pem.py
 convert_certdata_pem() {
     echo ""
-    echo "**** Extracting data from certdata.txt and creating certificates ****"
+    output "INFO" "**** Extracting data from certdata.txt and creating certificates ****"
     python3 certdata2pem.py
 }
 
@@ -70,13 +93,13 @@ convert_certdata_pem() {
 create_password_file() {
     if [ ! -f $WALLET_DIR/_pwd.txt ]; then
         echo ""
-        echo "**** Creating Password File ****"
-        echo "Location: ${WALLET_DIR}/_pwd.txt"
+        output "INFO" "**** Creating Password File ****"
+        output "INFO" "Location: ${WALLET_DIR}/_pwd.txt"
         openssl rand -base64 64 | tr -dc 'a-zA-Z0-9' | fold -w 40 | head -n 1 >$WALLET_DIR/_pwd.txt
     else
         echo ""
-        echo "**** Password File already present ****"
-        echo "Location: ${WALLET_DIR}/_pwd.txt"
+        output "INFO" "**** Password File already present ****"
+        output "INFO" "Location: ${WALLET_DIR}/_pwd.txt"
     fi
 }
 
@@ -96,12 +119,12 @@ create_oracle_wallet() {
     #     done
     # else
         echo ""
-        echo "> Build single certificate file containing all CAs"
+        output "INFO" "Build single certificate file containing all CAs"
         for file in $OUTPUT_TMP_DIR/*.crt; do
             cat $file >>$WALLET_DIR/ca-certificates.crt
         done
         echo ""
-        echo "> Creating Wallet with openssl"
+        output "INFO" "Creating Wallet with openssl"
         openssl pkcs12 -export -in $WALLET_DIR/ca-certificates.crt -out $WALLET_DIR/ewallet.p12 -nokeys -passout file:$WALLET_DIR/_pwd.txt
     # fi
 }
@@ -115,8 +138,8 @@ cleanup() {
 # End output
 end_output() {
     echo ""
-    echo "**** Done ****"
-    echo "Location: ${WALLET_DIR}"
+    output "SUCCESS" "**** Done ****"
+    output "SUCCESS" "Location: ${WALLET_DIR}"
 }
 
 
@@ -128,7 +151,7 @@ move_wallet() {
 
 set_apex_wallet_and_pwd() {
 
-  echo "Set APEX Instance SSL Wallet"
+  output "INFO" "Set APEX Instance SSL Wallet"
   WALLET_PWD=$(cat /opt/oracle/oradata/wallet/_pwd.txt)
 
   echo "prompt set wallet instance parameters">set_apex_wallet.sql
@@ -148,12 +171,12 @@ set_apex_wallet_and_pwd() {
 # Execute functions
 set_env
 create_folders
-echo "OUTPUT_TMP_DIR: $OUTPUT_TMP_DIR"
+output "INFO" "OUTPUT_TMP_DIR: $OUTPUT_TMP_DIR"
 
 cd $OUTPUT_TMP_DIR
 fetch_scripts
 convert_certdata_pem
-echo "WORKING_DIR: $WORKING_DIR"
+output "INFO" "WORKING_DIR: $WORKING_DIR"
 
 cd $WORKING_DIR
 create_password_file
