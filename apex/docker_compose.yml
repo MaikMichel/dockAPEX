@@ -18,9 +18,7 @@ services:
       - smtp_pwd
     container_name: apex
     restart: unless-stopped
-    depends_on:
-      database:
-        condition: service_healthy
+    
     volumes:
       - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
       - apx_imgs:/opt/oracle/images

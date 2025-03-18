@@ -1,0 +1,5 @@
+services:
+  ords:
+    depends_on:
+      database:
+        condition: service_healthy    

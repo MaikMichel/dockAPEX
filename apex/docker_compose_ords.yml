@@ -1,0 +1,5 @@
+services:
+  ords:
+    depends_on:
+      apex:
+        condition: service_healthy    
