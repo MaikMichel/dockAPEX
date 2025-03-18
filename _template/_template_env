@@ -124,7 +124,7 @@ TOMCAT_PORT="${TOMCAT_PORT}"
 # ========================================================
 AOP=${AOP}
 AOP_PORT="${AOP_PORT}"
-
+AOP_FULL_VERSION="${AOP_FULL_VERSION}"
 
 
 
