@@ -153,3 +153,10 @@ $ .dockapex/dpex.sh demo.env config
 # save config to file
 $ .dockapex/dpex.sh demo.env config --output demo.yml
 ```
+
+# Credits
+Dockerfiles are based on and with the influence of:
+- https://github.com/araczkowski/docker-oracle-apex-ords
+
+Some inspirations are coming from:
+- https://github.com/Dani3lSun/docker-db-apex-dev
