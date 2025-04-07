@@ -9,7 +9,8 @@ services:
     environment:
       - ORACLE_PASSWORD_FILE=/run/secrets/oracle_pwd
     secrets:
-      - oracle_pwd
+      - source: oracle_pwd
+        mode: 0644
     volumes:
       - db_store:/opt/oracle/oradata
     hostname: ${DB_HOST}
