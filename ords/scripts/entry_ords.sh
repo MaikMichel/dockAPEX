@@ -212,7 +212,7 @@ EOF
   RESULT=$?
 
   if [[ ${RESULT} -eq 0 ]]; then
-    output "ERROR" "AOP Version could not be determined in ${DB_NAME}"      
+    output "ERROR" "ORDS Version could not be determined in ${DB_NAME}"      
     INS_STATUS="FRESH"
   else
 
