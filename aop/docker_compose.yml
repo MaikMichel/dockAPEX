@@ -10,7 +10,7 @@ services:
         - AOP_FULL_VERSION=${AOP_FULL_VERSION}
     container_name: aop
     ports:
-      - 8010:${AOP_PORT}
+      - ${AOP_PORT}:8010
     restart: unless-stopped
     
     environment:

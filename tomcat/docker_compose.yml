@@ -11,7 +11,7 @@ services:
         - ORDS_VERSION=${ORDS_VERSION}
     container_name: tomcat
     ports:
-      - 9080:${TOMCAT_PORT}
+      - ${TOMCAT_PORT}:9080
     restart: unless-stopped
     depends_on:
       ords:

@@ -17,7 +17,7 @@ services:
       - APEX_VERSION=${APEX_VERSION}
     container_name: ords
     ports:
-      - 8080:${ORDS_PORT}
+      - ${ORDS_PORT}:8080
     restart: unless-stopped
     depends_on:
       database:
