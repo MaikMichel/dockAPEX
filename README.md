@@ -59,7 +59,7 @@ $ git submodule add https://github.com/MaikMichel/dockAPEX.git .dockAPEX
 
 ```bash
 # create demo.env and demo.sec
-$ .dockapex/dpex.sh demo.env generate
+$ .dockapex/dpex.sh demo.env genfiles
 ```
 
 ### Update Config
