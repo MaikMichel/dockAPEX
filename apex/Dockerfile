@@ -1,9 +1,10 @@
-FROM ghcr.io/graalvm/graalvm-ce:ol8-java17-22.3.3
+FROM eclipse-temurin:25-jre-ubi10-minimal
+
+WORKDIR /app
 
 # Install required packages first
 RUN ls /etc/yum.repos.d/ && \
-microdnf install unzip ncurses openssl python3 && \
-gu install js && \
+microdnf install -y unzip ncurses openssl python3 && \
 curl -s https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-latest.zip > sqlcl-latest.zip && \
 unzip sqlcl-latest.zip && \
 chmod 755 sqlcl/bin/sql && \
