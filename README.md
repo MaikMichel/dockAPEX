@@ -7,6 +7,7 @@
 - Apache Tomcat
 - APEX Office Print
 - Traefic
+- Mailpit (development mail sink with web UI)
 
 Each component can also be omitted. This means that for a local development environment, you simply install the DB with APEX and ORDS and you're done. Furthermore, you can import / run a new version of a component only by removing the respective container and replacing it with the new version.
 
@@ -73,6 +74,21 @@ It is sufficient to edit the settings in the *name*.sec file.
 > Please add this file to the .gitignore. Security relevant information is stored here.
 
 The secrets themselves are passed on to the containers via docker secrets.
+
+## Development mail server (Mailpit)
+
+Set `MAILPIT=true` in your env file to catch all mails sent by APEX / the database. The web UI is available on `http://localhost:${MAILPIT_PORT}` (default 8025), or on `https://<TRAEFIK_DOMAIN>/mailpit` when Traefik is enabled (protected by the Traefik dashboard login). To send mails to it, configure:
+
+```bash
+# demo.env
+APEX_SMTP=true
+APEX_SMTP_HOST_ADDRESS=mailpit
+APEX_SMTP_FROM=apex@localhost
+APEX_SMTP_USERNAME=apex
+
+# demo.sec (any value is accepted by Mailpit)
+SMTP_PASSWORD=dev
+```
 
 ## Update / Upgrade APEX
 

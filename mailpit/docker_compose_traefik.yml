@@ -1,0 +1,18 @@
+services:
+
+  mailpit:
+    environment:
+      - MP_WEBROOT=/mailpit
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailpit.rule=Host(`${TRAEFIK_DOMAIN}`) && PathPrefix(`/mailpit`)"
+      - "traefik.http.routers.mailpit.entrypoints=websecure"
+      - "traefik.http.routers.mailpit.tls.certresolver=myresolver"
+      # mailpit has no login of its own, reuse the auth of the traefik dashboard
+      - "traefik.http.routers.mailpit.middlewares=diggest-auth-global@docker"
+      - "traefik.http.services.mailpit.loadbalancer.server.port=8025"
+
+  traefik:
+    depends_on:
+      mailpit:
+        condition: service_started

@@ -89,6 +89,10 @@ function validate_aop_params() {
   check_params "AOP_PORT"
 }
 
+function validate_mailpit_params() {
+  check_params "MAILPIT_VERSION" "MAILPIT_PORT"
+}
+
 function validate_trfk_params() {
   check_params "TRAEFIK_DEFAULT_ROUTE" "TRAEFIK_DOMAIN" "TRAEFIK_DASHBOARD" "TRAEFIK_LETSENCRYPT_EMAIL"
   check_secret "TRFK_USERPWD"
@@ -188,6 +192,16 @@ if [[ ${2} != "genfiles" ]]; then
       DCKAPX_COMP_FILES+="-f ${path_ref}aop/docker_compose_ords.yml "
     fi
 
+  fi
+
+  if [[ "$MAILPIT" == true ]]; then
+    DCKAPX_COMP_FILES+="-f ${path_ref}mailpit/docker_compose.yml "
+
+    validate_mailpit_params
+
+    if [[ "$TRAEFIK" == true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}mailpit/docker_compose_traefik.yml "
+    fi
   fi
 
   if [[ "$TRAEFIK" == true ]]; then

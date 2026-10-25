@@ -1,0 +1,32 @@
+services:
+  # Development mail sink, catches all mails sent by DB / APEX
+  mailpit:
+    image: axllent/mailpit:v${MAILPIT_VERSION}
+    labels:
+      - "dockapex_config=${DCPAPX_PROJECT_NAME}"
+    container_name: mailpit
+    hostname: mailpit
+    ports:
+      - ${MAILPIT_PORT}:8025
+    restart: unless-stopped
+
+    environment:
+      # listen on 25, so the APEX default and the SMTP ACL work without changes
+      - MP_SMTP_BIND_ADDR=0.0.0.0:25
+      - MP_DATABASE=/data/mailpit.db
+      - MP_SMTP_AUTH_ACCEPT_ANY=true
+      - MP_SMTP_AUTH_ALLOW_INSECURE=true
+
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 1m
+      timeout: 30s
+      retries: 5
+      start_period: 10s
+
+    volumes:
+      - mailpit_data:/data
+
+volumes:
+  mailpit_data:
+    driver: local
