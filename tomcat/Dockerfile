@@ -40,7 +40,7 @@ RUN mkdir /tmp/tcat && tar xzf /tmp/tomcat.tgz -C /tmp/tcat && \
     rm /tmp/tomcat.tgz && \
     rm -rf /tmp/tcat && \
     sync && \
-    set -x && chmod +x /scripts/*.sh && \
+    chmod +x /scripts/*.sh && \
     rm -rf ${TOMCAT_DIR}/webapps/*
 
 # index and error files

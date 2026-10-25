@@ -36,7 +36,7 @@ ADD ${ORDS_URL} /opt/ords-${ORDS_VERSION}/
 COPY scripts /scripts
 
 
-RUN set -x && chmod +x /scripts/*.sh
+RUN chmod +x /scripts/*.sh
 
 # Ports
 EXPOSE 8080

@@ -35,7 +35,7 @@ ADD ${APEX_PSET_URL} "/tmp/apex_patch_${APEX_FULL_VERSION}.zip"
 # all installation files
 COPY scripts /scripts
 
-RUN set -x && chmod +x /scripts/*.sh
+RUN chmod +x /scripts/*.sh
 
 # NO Ports
 

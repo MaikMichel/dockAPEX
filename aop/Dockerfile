@@ -21,7 +21,7 @@ ENV APEX_FULL_VERSION=${APEX_FULL_VERSION}
 COPY scripts /scripts
 COPY db /db
 
-RUN set -x && chmod +x /scripts/*.sh
+RUN chmod +x /scripts/*.sh
 
 # NO Ports
 
