@@ -114,7 +114,8 @@ function check_database() {
 function get_true_falsy () {
   local QUERY=$1
 
-  sql -S -L ${SQLPLUS_ARGS} <<EOF
+  sql -S -L /nolog <<EOF
+conn ${SQLPLUS_ARGS}
 set serveroutput on
 set heading off
 set feedback off
@@ -296,7 +297,8 @@ function config_apex() {
     if [[ -f ${APEX_HOME}/apexins.sql ]]; then
 
       cd ${APEX_HOME}
-      sql -S ${SQLPLUS_ARGS} <<EOF
+      sql -S /nolog <<EOF
+        conn ${SQLPLUS_ARGS}
 
         set define '^'
         set concat on
@@ -410,7 +412,8 @@ EOF
 
 
       if [[ "$APEX_SMTP" == true ]]; then
-        sql -S ${SQLPLUS_ARGS} <<EOF
+        sql -S /nolog <<EOF
+        conn ${SQLPLUS_ARGS}
 
         set define '^'
         set concat on
@@ -476,7 +479,8 @@ function check_second_bdb(){
   if [[ ${APEX_SECND_PDB,,} == "true" ]]; then
     output "INFO" "Cloning to ${DB_NAME} to ${APEX_SECND_PDB_NAME}"
 
-    sql -S $SQLPLUS_ARGS <<EOF
+    sql -S /nolog <<EOF
+    conn ${SQLPLUS_ARGS}
     alter session set container=cdb\$root;
 
     create pluggable database ${APEX_SECND_PDB_NAME} from ${DB_NAME}

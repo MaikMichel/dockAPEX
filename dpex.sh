@@ -258,6 +258,8 @@ function genfiles() {
     sed -i '1,2d' "${target_file}.sec"
   fi
 
+  chmod 600 "${target_file}.sec"
+
   echo_info "${target_file}.env and ${target_file}.sec created"
   echo_info "Please define your configuration properties here"
 

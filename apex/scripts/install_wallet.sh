@@ -163,7 +163,10 @@ set_apex_wallet_and_pwd() {
   echo "/" >>set_apex_wallet.sql
 
   echo "run sql"
-  echo "exit" | sql -L ${SQLPLUS_ARGS} @set_apex_wallet
+  printf 'conn %s\n@set_apex_wallet\nexit\n' "${SQLPLUS_ARGS}" | sql -L /nolog
+  local rc=$?
+  rm -f set_apex_wallet.sql
+  return ${rc}
 }
 
 
