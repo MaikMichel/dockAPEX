@@ -504,6 +504,11 @@ EOF
 }
 
 function install_wallets() {
+  # the wallet is written to the volume of the local database container
+  if [[ "${DB}" != "true" ]]; then
+    output "WARN" "External database, skipping wallet installation"
+    return
+  fi
   /scripts/install_wallet.sh
 }
 
