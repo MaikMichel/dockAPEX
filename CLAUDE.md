@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-dockAPEX builds an Oracle APEX stack (DB, APEX, ORDS, Tomcat, APEX Office Print, Traefik) from docker-compose fragments. It is meant to be added as a git submodule (`.dockAPEX`) to a user's instance project; config lives in the instance project, not here. There is no build system, linter or test suite — the repo is bash scripts, Dockerfiles and compose YAML. (`demo.env`/`demo.sec` in the root are local sample configs; `*.sec` is gitignored.)
+dockAPEX builds an Oracle APEX stack (DB, APEX, ORDS, Tomcat, APEX Office Print, Traefik) from docker-compose fragments. It is meant to be added as a git submodule (`.dockAPEX`) to a user's instance project; config lives in the instance project, not here. There is no build system — the repo is bash scripts, Dockerfiles and compose YAML, tested with bats (`./tests/run.sh [unit|config|lint|integration]`, see README; `integration` starts real containers and needs the fixed container names/ports free). (`demo.env`/`demo.sec` in the root are local sample configs; `*.sec` is gitignored.)
 
 ## Commands
 

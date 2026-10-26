@@ -280,7 +280,7 @@ function install_apex_images() {
   if [[ -f ${APEX_HOME}/apexins.sql ]]; then
     output "INFO" "Copy APEX static files to ${APEX_IMAGES}"
 
-    rm -rf ${APEX_IMAGES}/*
+    rm -rf "${APEX_IMAGES:?}"/*
     cp -rf ${APEX_HOME}/images/* ${APEX_IMAGES}
 
     output "INFO" "APEX static files has been copied."
@@ -504,6 +504,11 @@ EOF
 }
 
 function install_wallets() {
+  # the wallet is written to the volume of the local database container
+  if [[ "${DB}" != "true" ]]; then
+    output "WARN" "External database, skipping wallet installation"
+    return
+  fi
   /scripts/install_wallet.sh
 }
 
@@ -544,7 +549,7 @@ EOF
   PATCH=$(echo $APEX_FULL_VERSION| cut -d"." -f3)
 
   # Get DB installed version
-  APEX_DB_VERSION=$(cat /tmp/apex_version|grep [0-9][0-9].[1-5].[0-9] |sed '/^$/d'|sed 's/ //g')
+  APEX_DB_VERSION=$(cat /tmp/apex_version|grep '[0-9][0-9].[1-5].[0-9]' |sed '/^$/d'|sed 's/ //g')
   DB_MAJOR=$(echo $APEX_DB_VERSION | cut -d"." -f1)
   DB_MINOR=$(echo $APEX_DB_VERSION | cut -d"." -f2)
   DB_PATCH=$(echo $APEX_DB_VERSION | cut -d"." -f3)

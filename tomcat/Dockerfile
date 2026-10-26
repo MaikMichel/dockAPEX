@@ -50,7 +50,5 @@ COPY html ${TOMCAT_DIR}/webapps/ROOT
 EXPOSE 9080
 EXPOSE 9443
 
-RUN
-
 # ENTRYPOINT
 ENTRYPOINT ["/scripts/entry_tomcat.sh"]

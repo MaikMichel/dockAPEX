@@ -201,7 +201,7 @@ EOF
     PATCH=$(echo $AOP_FULL_VERSION | cut -d"." -f3)
 
     # Get DB installed version
-    AOP_DB_VERSION=$(cat /tmp/aop_version|grep [0-9][0-9].[1-5].[0-9] |sed '/^$/d'|sed 's/ //g')
+    AOP_DB_VERSION=$(cat /tmp/aop_version|grep '[0-9][0-9].[1-5].[0-9]' |sed '/^$/d'|sed 's/ //g')
     DB_MAJOR=$(echo $AOP_DB_VERSION | cut -d"." -f1)
     DB_MINOR=$(echo $AOP_DB_VERSION | cut -d"." -f2)
     DB_PATCH=$(echo $AOP_DB_VERSION | cut -d"." -f3)

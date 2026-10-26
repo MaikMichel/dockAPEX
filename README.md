@@ -176,3 +176,16 @@ Dockerfiles are based on and with the influence of:
 
 Some inspirations are coming from:
 - https://github.com/Dani3lSun/docker-db-apex-dev
+
+## Tests
+
+The tests use [bats-core](https://github.com/bats-core/bats-core), included as git submodules in `tests/`.
+
+```bash
+git submodule update --init
+./tests/run.sh unit          # dpex.sh with a stubbed docker-compose, _lib.sh, genfiles
+./tests/run.sh config        # real `docker-compose config` for the flag combinations (no containers)
+./tests/run.sh lint          # shellcheck, hadolint, yamllint (those installed)
+./tests/run.sh integration   # starts a real stack, slow; needs the container names/ports to be free
+./tests/run.sh               # unit + config
+```

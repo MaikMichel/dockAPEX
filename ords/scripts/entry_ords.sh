@@ -203,7 +203,7 @@ EOF
   PATCH=$(echo $ORDS_VERSION| cut -d"." -f3)
 
   # Get DB installed version
-  ORDS_DB_VERSION=$(cat /tmp/ords_version|grep [0-9][0-9].[1-5].[0-9] |sed '/^$/d'|sed 's/ //g')
+  ORDS_DB_VERSION=$(cat /tmp/ords_version|grep '[0-9][0-9].[1-5].[0-9]' |sed '/^$/d'|sed 's/ //g')
   DB_YEAR=$(echo $ORDS_DB_VERSION | cut -d"." -f1)
   DB_QTR=$(echo $ORDS_DB_VERSION | cut -d"." -f2)
   DB_PATCH=$(echo $ORDS_DB_VERSION | cut -d"." -f3)
