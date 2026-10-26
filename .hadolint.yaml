@@ -1,0 +1,8 @@
+ignored:
+  - DL3006  # untagged base image (aop)
+  - DL3008  # pin apt versions
+  - DL3009  # delete apt lists
+  - DL3015  # no-install-recommends
+  - DL3020  # ADD is used for URL downloads
+  - DL3040  # dnf clean all
+  - DL3041  # pin dnf versions

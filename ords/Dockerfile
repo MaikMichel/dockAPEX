@@ -20,6 +20,8 @@ ARG ORDS_FULL_VERSION=${ORDS_FULL_VERSION} \
     APEX_VERSION=${APEX_VERSION}
 
 # Define environent Vars
+# ORDS_VERSION is also a build arg with the same value, so the reference below is fine
+# hadolint ignore=DL3044
 ENV ORDS_FULL_VERSION=${ORDS_FULL_VERSION} \
     ORDS_VERSION=${ORDS_VERSION} \
     ORDS_DIR=/opt/ords-${ORDS_VERSION}/ \

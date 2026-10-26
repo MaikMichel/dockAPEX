@@ -1,0 +1,8 @@
+extends: default
+rules:
+  line-length: disable
+  document-start: disable
+  truthy: disable
+  comments: {min-spaces-from-content: 1}
+  trailing-spaces: {level: warning}
+  new-line-at-end-of-file: {level: warning}

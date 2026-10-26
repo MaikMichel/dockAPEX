@@ -39,11 +39,11 @@ BGRAY="\e[0;90m"
 BLBACK="\e[30;48;5;81m"
 
 
-git --version 2>&1 >/dev/null
+git --version >/dev/null 2>&1
 GIT_IS_AVAILABLE=$?
 
 function errcho() {
-    >&2 echo -e "${RED}$@${NC}";
+    >&2 echo -e "${RED}$*${NC}";
 }
 
 function usage() {
@@ -60,7 +60,7 @@ function usage() {
   exit $1
 }
 
-if [[ $GIT_IS_AVAILABLE > 0 ]]; then
+if [[ $GIT_IS_AVAILABLE -gt 0 ]]; then
   errcho ""
   errcho " ⚠ Please install git before running this command."
   errcho ""
@@ -68,8 +68,8 @@ if [[ $GIT_IS_AVAILABLE > 0 ]]; then
 fi
 
 TARGET_PATH=.
-if [[ $# > 0 ]]; then
-    if [[ $# > 1 ]]; then
+if [[ $# -gt 0 ]]; then
+    if [[ $# -gt 1 ]]; then
       errcho ""
       errcho " ⚠ Too many arguments. Make sure you use just one argument when you want to create a new folder or install dpex in this one."
       errcho ""
