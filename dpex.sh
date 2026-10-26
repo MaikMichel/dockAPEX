@@ -54,7 +54,7 @@ function validate_apex_params() {
 
   ## TableSpace
   if [[ "$APEX_CREATE_TSPACE" == true ]]; then
-    check_params "APEX_CREATE_TSPACE"
+    check_params "APEX_CREATE_TSPACE_PATH"
   fi
 
   ## Second PDB
@@ -120,6 +120,9 @@ else
   if [[ -f ${DCKAPX_SECRET_FILE} ]]; then
     source ${DCKAPX_SECRET_FILE}
   fi
+
+  # compose mounts this secret into ords in any case, so it must exist (empty without DynDNS)
+  : "${ORDS_DDNS_PASSWORD:=}"
 
   ## stop export configuration
   set +a
@@ -206,12 +209,14 @@ if [[ ${2} != "genfiles" ]]; then
 
   if [[ "$TRAEFIK" == true ]]; then
     DCKAPX_COMP_FILES+="-f ${path_ref}traefik/docker_compose.yml "
+
+    validate_trfk_params
   fi
 fi
 
 # arg1 => file, entfernen, den Rest geben wir an compose weiter
 shift
-DCKAPX_COMMAND="$@"
+DCKAPX_COMMAND="$*"
 
 function clear_containers() {
   local arg=${1}
@@ -261,16 +266,16 @@ function genfiles() {
   if [[ -z "$ZSH_VERSION" ]]; then
     render_template "${path_ref}_template/_template_env" "${target_file}.env"
     render_template "${path_ref}_template/_template_sec" "${target_file}.sec"
-
-    sed -i '' '1,2d' "${target_file}.env"
-    sed -i '' '1,2d' "${target_file}.sec"
   else  
     envsubst < "${path_ref}_template/_template_env" > "${target_file}.env"
     envsubst < "${path_ref}_template/_template_sec" > "${target_file}.sec"
-
-    sed -i '1,2d' "${target_file}.env"
-    sed -i '1,2d' "${target_file}.sec"
   fi
+
+  # drop the two header lines and turn § back into $ (portable, no sed -i)
+  local f
+  for f in "${target_file}.env" "${target_file}.sec"; do
+    sed '1,2d; s/§/$/g' "${f}" > "${f}.tmp" && mv "${f}.tmp" "${f}"
+  done
 
   chmod 600 "${target_file}.sec"
 
