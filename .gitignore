@@ -11,3 +11,6 @@
 
 # not included, you have to download it by yourself
 aop/db/*.sql
+
+# integration test workdir
+tests/.tmp.*

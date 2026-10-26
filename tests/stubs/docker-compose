@@ -1,0 +1,4 @@
+#!/bin/bash
+# test stub: records the call instead of running docker
+echo "STUB docker-compose $*"
+echo "STUB env ORDS_DDNS_PASSWORD=${ORDS_DDNS_PASSWORD-<unset>}"
