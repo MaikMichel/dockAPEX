@@ -4,7 +4,10 @@
 load ../helpers
 
 setup_file() {
-  command -v docker-compose >/dev/null || skip "docker-compose missing"
+  if ! command -v docker-compose >/dev/null; then
+    [[ -n "${CI}" ]] && { echo "docker-compose missing" >&2; return 1; }
+    skip "docker-compose missing"
+  fi
 }
 
 teardown() { teardown_env; }

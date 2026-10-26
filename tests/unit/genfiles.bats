@@ -21,7 +21,8 @@ gen() { run bash dock/dpex.sh demo.env genfiles; }
 
 @test "sec file is only accessible by the owner" {
   gen
-  run stat -f '%Lp' demo.sec 2>/dev/null || run stat -c '%a' demo.sec
+  # GNU stat first: its -f means file system status and would succeed on macOS-style calls
+  run bash -c "stat -c '%a' demo.sec 2>/dev/null || stat -f '%Lp' demo.sec"
   assert_output "600"
 }
 

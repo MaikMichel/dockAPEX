@@ -23,6 +23,10 @@ jobs:
           sudo apt-get install -y shellcheck yamllint
           sudo curl -fsSL -o /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
           sudo chmod +x /usr/local/bin/hadolint
+      - name: Install docker-compose
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64
+          sudo chmod +x /usr/local/bin/docker-compose
       - run: ./tests/run.sh lint
       - run: ./tests/run.sh all
 
