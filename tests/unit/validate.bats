@@ -75,27 +75,6 @@ teardown() { teardown_env; }
   assert_output --partial "ORDS_DDNS_USER"
 }
 
-@test "TOMCAT without TOMCAT_PORT exits 2" {
-  make_env TOMCAT=true TOMCAT_PORT=
-  run_dpex test.env config
-  assert_failure 2
-  assert_output --partial "TOMCAT_PORT"
-}
-
-@test "AOP without AOP_PORT exits 2" {
-  make_env AOP=true AOP_PORT=
-  run_dpex test.env config
-  assert_failure 2
-  assert_output --partial "AOP_PORT"
-}
-
-@test "MAILPIT without MAILPIT_PORT exits 2" {
-  make_env MAILPIT=true MAILPIT_PORT=
-  run_dpex test.env config
-  assert_failure 2
-  assert_output --partial "MAILPIT_PORT"
-}
-
 @test "APEX_CREATE_TSPACE requires APEX_CREATE_TSPACE_PATH" {
   make_env APEX_CREATE_TSPACE=true APEX_CREATE_TSPACE_PATH=
   run_dpex test.env config

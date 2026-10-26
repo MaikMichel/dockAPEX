@@ -4,10 +4,9 @@ services:
     image: axllent/mailpit:v${MAILPIT_VERSION}
     labels:
       - "dockapex_config=${DCPAPX_PROJECT_NAME}"
-    container_name: mailpit
     hostname: mailpit
     ports:
-      - ${MAILPIT_PORT}:8025
+      - ${MAILPIT_PORT:-8025-8125}:8025
     restart: unless-stopped
 
     environment:

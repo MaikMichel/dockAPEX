@@ -1,11 +1,10 @@
 services:
   database:
-    container_name: database
     image: container-registry.oracle.com/database/free:latest
     labels:
       - "dockapex_config=${DCPAPX_PROJECT_NAME}"
     ports:
-      - ${DB_PORT}:1521
+      - ${DB_HOST_PORT:-1521-1599}:1521
     environment:
       - ORACLE_PASSWORD_FILE=/run/secrets/oracle_pwd
     secrets:

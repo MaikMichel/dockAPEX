@@ -77,7 +77,7 @@ The secrets themselves are passed on to the containers via docker secrets.
 
 ## Development mail server (Mailpit)
 
-Set `MAILPIT=true` in your env file to catch all mails sent by APEX / the database. The web UI is available on `http://localhost:${MAILPIT_PORT}` (default 8025), or on `https://<TRAEFIK_DOMAIN>/mailpit` when Traefik is enabled (protected by the Traefik dashboard login). To send mails to it, configure:
+Set `MAILPIT=true` in your env file to catch all mails sent by APEX / the database. The web UI is available on `http://localhost:<port>` (see `ports`, default range 8025-8125), or on `https://<project>.<TRAEFIK_DOMAIN>/mailpit` when Traefik is enabled (protected by the Traefik dashboard login). To send mails to it, configure:
 
 ```bash
 # demo.env
@@ -89,6 +89,40 @@ APEX_SMTP_USERNAME=apex
 # demo.sec (any value is accepted by Mailpit)
 SMTP_PASSWORD=dev
 ```
+
+## Host ports / parallel stacks
+
+Containers have no fixed names; docker-compose names them `<project>-<service>-1`, so several env files can run side by side. The host ports are set per service (`DB_HOST_PORT`, `ORDS_PORT`, `TOMCAT_PORT`, `AOP_PORT`, `MAILPIT_PORT`) and can be
+
+- a range (default, e.g. `ORDS_PORT="8080-8180"`): docker picks a free port of the range (it continues after the port it assigned last, so not necessarily the lowest)
+- a single port (`ORDS_PORT="8080"`): fixed, a second stack on the same port fails
+- empty: falls back to the default range
+
+`DB_PORT` is only the port inside the network (the services connect to `DB_HOST:DB_PORT`) and stays `1521`. A detached `up` prints the assigned ports; show them any time with:
+
+```bash
+./dpex.sh demo.env ports
+```
+
+Docker assigns the port when the container starts, so it can change after a stop / start.
+
+### Traefik: one proxy, many projects
+
+With Traefik every project is routed by its own subdomain: `https://<project>.<TRAEFIK_DOMAIN>/` (the project is the env file name, `_` becomes `-`). Locally `TRAEFIK_DOMAIN="localhost"` works, browsers resolve `<project>.localhost` without DNS. For real domains every subdomain needs a DNS record (or a wildcard record), Let's Encrypt needs ports 80 / 443.
+
+Only one Traefik can bind 80 / 443 per host. Run it in its own env file and let the other stacks use it:
+
+```bash
+# traefik.env:  TRAEFIK=true          (no DB / APEX / ORDS)
+# proj1.env:    TRAEFIK_EXTERNAL=true (plus TRAEFIK_DOMAIN and TRAEFIK_DEFAULT_ROUTE, same domain as traefik.env)
+./dpex.sh traefik.env up --detach
+./dpex.sh proj1.env up --detach       # https://proj1.<TRAEFIK_DOMAIN>/
+./dpex.sh proj2.env up --detach       # https://proj2.<TRAEFIK_DOMAIN>/
+```
+
+`TRAEFIK=true` together with ORDS / Tomcat in one env file still works (single stack). Both flags are exclusive. The stacks talk through the docker network `dpex_proxy`, which `up` creates when missing. The Traefik dashboard stays on `https://<TRAEFIK_DOMAIN>/traefik`.
+
+**Note:** existing Traefik setups are now reached on `https://<project>.<TRAEFIK_DOMAIN>/` instead of `https://<TRAEFIK_DOMAIN>/`; this needs a DNS record (and certificate) for the subdomain.
 
 ## Update / Upgrade APEX
 
@@ -186,6 +220,6 @@ git submodule update --init
 ./tests/run.sh unit          # dpex.sh with a stubbed docker-compose, _lib.sh, genfiles
 ./tests/run.sh config        # real `docker-compose config` for the flag combinations (no containers)
 ./tests/run.sh lint          # shellcheck, hadolint, yamllint (those installed)
-./tests/run.sh integration   # starts a real stack, slow; needs the container names/ports to be free
+./tests/run.sh integration   # starts a real stack, slow
 ./tests/run.sh               # unit + config
 ```

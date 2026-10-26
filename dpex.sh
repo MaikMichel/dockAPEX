@@ -24,6 +24,7 @@ function usage() {
   echo "  commands: "
   echo "    genfile > creates an .env and .sec file based on all known vars"
   echo "    clear   > removes all container and images, prunes allocated space"
+  echo "    ports   > shows the host ports of the running services"
   echo ""
   echo "    compose-comand   > redirected to docker-compose"
   echo ""
@@ -70,7 +71,7 @@ function validate_apex_params() {
 }
 
 function validate_ords_params() {
-  check_params "ORDS_FULL_VERSION" "ORDS_VERSION" "ORDS_URL" "ORDS_PORT"
+  check_params "ORDS_FULL_VERSION" "ORDS_VERSION" "ORDS_URL"
   check_secret "ORDS_PASSWORD"
 
   ## DynDNS
@@ -82,20 +83,25 @@ function validate_ords_params() {
 
 
 function validate_tcat_params() {
-  check_params "TOMCAT_VERSION" "TOMCAT_URL" "TOMCAT_PORT"
-}
-
-function validate_aop_params() {
-  check_params "AOP_PORT"
+  check_params "TOMCAT_VERSION" "TOMCAT_URL"
 }
 
 function validate_mailpit_params() {
-  check_params "MAILPIT_VERSION" "MAILPIT_PORT"
+  check_params "MAILPIT_VERSION"
 }
 
 function validate_trfk_params() {
   check_params "TRAEFIK_DEFAULT_ROUTE" "TRAEFIK_DOMAIN" "TRAEFIK_DASHBOARD" "TRAEFIK_LETSENCRYPT_EMAIL"
   check_secret "TRFK_USERPWD"
+}
+
+# routed by a traefik of another stack, only the routing needs to be known
+function validate_trfk_external_params() {
+  check_params "TRAEFIK_DEFAULT_ROUTE" "TRAEFIK_DOMAIN"
+  if [[ "$TRAEFIK" == true ]]; then
+    echo_error "TRAEFIK and TRAEFIK_EXTERNAL are exclusive"
+    exit 2
+  fi
 }
 
 
@@ -113,6 +119,8 @@ else
 
   source ${DCKAPX_CONF_FILE}
   DCPAPX_PROJECT_NAME=$(basename "${DCKAPX_CONF_FILE%.*}")
+  # subdomain of the project when routed by traefik (DNS labels allow no underscores)
+  DCPAPX_HOST=$(tr '[:upper:]_.' '[:lower:]--' <<<"${DCPAPX_PROJECT_NAME}")
   DCKAPX_CONF_FILE=$(pwd)/${DCKAPX_CONF_FILE}
 
   # is there a secret file
@@ -129,6 +137,12 @@ else
 fi
 
 DCKAPX_COMP_FILES=""
+
+# apps are routed when this stack runs traefik or uses the one of another stack
+DCKAPX_ROUTED=false
+if [[ "$TRAEFIK" == true ]] || [[ "$TRAEFIK_EXTERNAL" == true ]]; then
+  DCKAPX_ROUTED=true
+fi
 
 # check only when argument 2 is not genfiles
 if [[ ${2} != "genfiles" ]]; then  
@@ -167,7 +181,7 @@ if [[ ${2} != "genfiles" ]]; then
       DCKAPX_COMP_FILES+="-f ${path_ref}ords/docker_compose_db.yml "
     fi
    
-    if [[ "$TRAEFIK" == true ]] && [[ "$TOMCAT" != true ]]; then
+    if [[ "$DCKAPX_ROUTED" == true ]] && [[ "$TOMCAT" != true ]]; then
       DCKAPX_COMP_FILES+="-f ${path_ref}ords/docker_compose_traefik.yml "
     fi
   fi
@@ -177,15 +191,13 @@ if [[ ${2} != "genfiles" ]]; then
 
     validate_tcat_params
 
-    if [[ "$TRAEFIK" == true ]]; then
+    if [[ "$DCKAPX_ROUTED" == true ]]; then
       DCKAPX_COMP_FILES+="-f ${path_ref}tomcat/docker_compose_traefik.yml "
     fi
   fi
 
   if [[ "$AOP" == true ]]; then
     DCKAPX_COMP_FILES+="-f ${path_ref}aop/docker_compose.yml "
-
-    validate_aop_params
 
     if [[ "$DB" == true ]]; then
       DCKAPX_COMP_FILES+="-f ${path_ref}aop/docker_compose_db.yml "
@@ -202,7 +214,7 @@ if [[ ${2} != "genfiles" ]]; then
 
     validate_mailpit_params
 
-    if [[ "$TRAEFIK" == true ]]; then
+    if [[ "$DCKAPX_ROUTED" == true ]]; then
       DCKAPX_COMP_FILES+="-f ${path_ref}mailpit/docker_compose_traefik.yml "
     fi
   fi
@@ -211,6 +223,10 @@ if [[ ${2} != "genfiles" ]]; then
     DCKAPX_COMP_FILES+="-f ${path_ref}traefik/docker_compose.yml "
 
     validate_trfk_params
+  fi
+
+  if [[ "$TRAEFIK_EXTERNAL" == true ]]; then
+    validate_trfk_external_params
   fi
 fi
 
@@ -245,6 +261,33 @@ function clear_containers() {
       fi
     fi
   fi
+}
+
+# prints the host address of every enabled service (ports are assigned by docker at start)
+function show_ports() {
+  local entries=() e svc cport label addr
+  [[ "$DB" == true ]] && entries+=("database:1521:")
+  [[ "$ORDS" == true ]] && entries+=("ords:8080:http://")
+  [[ "$TOMCAT" == true ]] && entries+=("tomcat:9080:http://")
+  [[ "$AOP" == true ]] && entries+=("aop:8010:http://")
+  [[ "$MAILPIT" == true ]] && entries+=("mailpit:8025:http://")
+
+  echo_info "Host ports of ${DCPAPX_PROJECT_NAME}:"
+  if [[ "$DCKAPX_ROUTED" == true ]] && [[ "$ORDS" == true || "$TOMCAT" == true || "$MAILPIT" == true ]]; then
+    printf '  %-10s https://%s.%s/\n' "traefik" "${DCPAPX_HOST}" "${TRAEFIK_DOMAIN}"
+  fi
+  if [[ "$TRAEFIK" == true && "$TRAEFIK_DASHBOARD" == true ]]; then
+    printf '  %-10s https://%s/traefik/\n' "dashboard" "${TRAEFIK_DOMAIN}"
+  fi
+  for e in "${entries[@]}"; do
+    IFS=: read -r svc cport label <<<"${e}"
+    addr=$(docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} port ${svc} ${cport} 2>/dev/null | tail -n 1)
+    if [[ -n "${addr}" ]]; then
+      printf '  %-10s %slocalhost:%s\n' "${svc}" "${label}" "${addr##*:}"
+    else
+      printf '  %-10s not running\n' "${svc}"
+    fi
+  done
 }
 
 function genfiles() {
@@ -297,9 +340,22 @@ case ${1} in
   '-h'|'--help')
     usage
     ;;
+  'ports')
+    show_ports
+    ;;
   *)
+    # the network shared with traefik is external, so it has to exist before up
+    if [[ ${1} == "up" && "$DCKAPX_ROUTED" == true ]]; then
+      docker network inspect dpex_proxy >/dev/null 2>&1 || docker network create dpex_proxy
+    fi
     echo "docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} ${DCKAPX_COMMAND}"
     docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} ${DCKAPX_COMMAND}
+    rc=$?
+    # a detached up returns, so the assigned ports are known now
+    if [[ ${rc} -eq 0 && ${1} == "up" && ( " $* " == *" -d "* || " $* " == *" --detach "* ) ]]; then
+      show_ports
+    fi
+    exit ${rc}
     ;;
 esac
 

@@ -9,9 +9,8 @@ services:
         - TOMCAT_VERSION=${TOMCAT_VERSION}
         - TOMCAT_URL=${TOMCAT_URL}
         - ORDS_VERSION=${ORDS_VERSION}
-    container_name: tomcat
     ports:
-      - ${TOMCAT_PORT}:9080
+      - ${TOMCAT_PORT:-9080-9180}:9080
     restart: unless-stopped
     depends_on:
       ords:
@@ -25,7 +24,7 @@ services:
       - tom_apps:/opt/tomcat-${TOMCAT_VERSION}/webapps
     hostname: tomcat
     healthcheck:
-      test: 'curl --fail -s http://localhost:${TOMCAT_PORT}/ords/ || exit 1'
+      test: 'curl --fail -s http://localhost:9080/ords/ || exit 1'
       interval: 1m
       timeout: 30s
       retries: 45

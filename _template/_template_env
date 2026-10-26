@@ -17,6 +17,7 @@ DB=${DB}
 DB_USER="${DB_USER}"
 DB_HOST="${DB_HOST}"
 DB_PORT="${DB_PORT}"
+DB_HOST_PORT="${DB_HOST_PORT}"
 DB_NAME="${DB_NAME}"
 
 
@@ -88,7 +89,7 @@ ORDS_VERSION="${ORDS_VERSION}"
 ORDS_URL="https://download.oracle.com/otn_software/java/ords/ords-§{ORDS_FULL_VERSION}.zip"
 
 
-ORDS_PORT="8080"
+ORDS_PORT="${ORDS_PORT}"
 
 # ORDS will curl set to true
 ORDS_DDNS="${ORDS_DDNS}"
@@ -153,6 +154,7 @@ MAILPIT_PORT="${MAILPIT_PORT}"
 #
 # ========================================================
 TRAEFIK=${TRAEFIK}
+TRAEFIK_EXTERNAL=${TRAEFIK_EXTERNAL}
 TRAEFIK_VERSION=${TRAEFIK_VERSION}
 TRAEFIK_DEFAULT_ROUTE="${TRAEFIK_DEFAULT_ROUTE}"
 TRAEFIK_DOMAIN="${TRAEFIK_DOMAIN}"

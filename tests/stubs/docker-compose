@@ -1,4 +1,9 @@
 #!/bin/bash
 # test stub: records the call instead of running docker
+# "port <service> <port>" answers like docker (the unit tests never start containers)
+if [[ " $* " == *" port "* ]]; then
+  [[ -n "${STUB_NO_PORTS}" ]] || echo "0.0.0.0:49153"
+  exit 0
+fi
 echo "STUB docker-compose $*"
 echo "STUB env ORDS_DDNS_PASSWORD=${ORDS_DDNS_PASSWORD-<unset>}"
