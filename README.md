@@ -94,7 +94,7 @@ SMTP_PASSWORD=dev
 
 Containers have no fixed names; docker-compose names them `<project>-<service>-1`, so several env files can run side by side. The host ports are set per service (`DB_HOST_PORT`, `ORDS_PORT`, `TOMCAT_PORT`, `AOP_PORT`, `MAILPIT_PORT`) and can be
 
-- a range (default, e.g. `ORDS_PORT="8080-8180"`): docker takes the first free port of the range
+- a range (default, e.g. `ORDS_PORT="8080-8180"`): docker picks a free port of the range (it continues after the port it assigned last, so not necessarily the lowest)
 - a single port (`ORDS_PORT="8080"`): fixed, a second stack on the same port fails
 - empty: falls back to the default range
 
