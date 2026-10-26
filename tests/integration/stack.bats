@@ -9,12 +9,6 @@ PROJECT=dpextest
 
 setup_file() {
   [[ "${DPEX_INTEGRATION}" == 1 ]] || skip "set DPEX_INTEGRATION=1"
-  # the compose files use fixed container names and host ports; never touch a running stack
-  local c busy=""
-  for c in database apex ords tomcat aop mailpit traefik; do
-    docker ps -a --format '{{.Names}}' | grep -qx "$c" && busy+=" $c"
-  done
-  [[ -z "$busy" ]] || { echo "container(s) already exist:$busy - stop that stack first" >&2; return 1; }
   cd "${REPO_ROOT}"
   # bind mounts need a path the docker VM can see (e.g. colima only shares $HOME)
   export TEST_DIR="$(mktemp -d "${REPO_ROOT}/tests/.tmp.XXXXXX")"
@@ -59,6 +53,9 @@ teardown_file() {
 
 dpex() { (cd "${TEST_DIR}" && bash dock/dpex.sh "${PROJECT}.env" "$@"); }
 
+# prints the host port docker assigned to a service port
+hport() { dpex port "$1" "$2" | tail -n 1 | sed 's/.*://'; }
+
 # prints the container id of a compose service (last line, the first one is the echoed command)
 cid() { dpex ps -q "$1" | tail -n 1; }
 
@@ -85,12 +82,12 @@ wait_healthy() {
 @test "mailpit becomes healthy" { wait_healthy mailpit; }
 
 @test "ords answers over HTTP" {
-  run curl -s -o /dev/null -w '%{http_code}' --retry 10 --retry-delay 5 --retry-connrefused "http://localhost:${ORDS_PORT:-8080}/ords/"
+  run curl -s -o /dev/null -w '%{http_code}' --retry 10 --retry-delay 5 --retry-connrefused "http://localhost:$(hport ords 8080)/ords/"
   assert_output --regexp '^(200|301|302)$'
 }
 
 @test "apex static images are served by ords" {
-  run curl -s -o /dev/null -w '%{http_code}' "http://localhost:${ORDS_PORT:-8080}/i/apex_version.js"
+  run curl -s -o /dev/null -w '%{http_code}' "http://localhost:$(hport ords 8080)/i/apex_version.js"
   assert_output "200"
 }
 
@@ -105,6 +102,6 @@ wait_healthy() {
 }
 
 @test "mailpit web ui answers" {
-  run curl -s -o /dev/null -w '%{http_code}' "http://localhost:${MAILPIT_PORT:-8025}/"
+  run curl -s -o /dev/null -w '%{http_code}' "http://localhost:$(hport mailpit 8025)/"
   assert_output "200"
 }

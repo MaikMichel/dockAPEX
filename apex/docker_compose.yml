@@ -16,7 +16,6 @@ services:
     secrets:
       - oracle_pwd
       - smtp_pwd
-    container_name: apex
     restart: unless-stopped
     
     volumes:

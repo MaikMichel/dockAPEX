@@ -5,8 +5,9 @@ services:
   ###############################################
   traefik:
     image: traefik:v${TRAEFIK_VERSION}
-    container_name: traefik
     restart: unless-stopped
+    networks:
+      - proxy
     ports:
       - "80:80"   # <== http
       - "443:443" # <== https
@@ -18,6 +19,7 @@ services:
       - "--api.dashboard=${TRAEFIK_DASHBOARD}"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=dpex_proxy"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
@@ -56,6 +58,11 @@ services:
       - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+networks:
+  proxy:
+    name: dpex_proxy
+    external: true
 
 volumes:
   tfk_logs:

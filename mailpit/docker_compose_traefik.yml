@@ -1,18 +1,21 @@
 services:
 
   mailpit:
+    networks:
+      - default
+      - proxy
     environment:
       - MP_WEBROOT=/mailpit
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.mailpit.rule=Host(`${TRAEFIK_DOMAIN}`) && PathPrefix(`/mailpit`)"
-      - "traefik.http.routers.mailpit.entrypoints=websecure"
-      - "traefik.http.routers.mailpit.tls.certresolver=myresolver"
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-mailpit.rule=Host(`${DCPAPX_HOST}.${TRAEFIK_DOMAIN}`) && PathPrefix(`/mailpit`)"
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-mailpit.entrypoints=websecure"
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-mailpit.tls.certresolver=myresolver"
       # mailpit has no login of its own, reuse the auth of the traefik dashboard
-      - "traefik.http.routers.mailpit.middlewares=diggest-auth-global@docker"
-      - "traefik.http.services.mailpit.loadbalancer.server.port=8025"
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-mailpit.middlewares=diggest-auth-global@docker"
+      - "traefik.http.services.${DCPAPX_PROJECT_NAME}-mailpit.loadbalancer.server.port=8025"
 
-  traefik:
-    depends_on:
-      mailpit:
-        condition: service_started
+networks:
+  proxy:
+    name: dpex_proxy
+    external: true

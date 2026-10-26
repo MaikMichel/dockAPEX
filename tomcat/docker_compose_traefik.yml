@@ -1,19 +1,22 @@
 services:
 
   tomcat:
+    networks:
+      - default
+      - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.tomcat.rule=Host(`${TRAEFIK_DOMAIN}`)"
-      - "traefik.http.routers.tomcat.entrypoints=websecure"
-      - "traefik.http.routers.tomcat.tls.certresolver=myresolver"
-      # the middleware 'add-context' must be defined so that the regex rules can be attached to it
-      - "traefik.http.routers.tomcat.middlewares=add-context"
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-tomcat.rule=Host(`${DCPAPX_HOST}.${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-tomcat.entrypoints=websecure"
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-tomcat.tls.certresolver=myresolver"
+      # the middleware must be defined so that the regex rules can be attached to it
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-tomcat.middlewares=${DCPAPX_PROJECT_NAME}-add-context"
 
       # here is the logic to force root domain to redirect to default url
-      - "traefik.http.middlewares.add-context.redirectregex.regex=^https:\\/\\/([^\\/]+)\\/?$$"
-      - "traefik.http.middlewares.add-context.redirectregex.replacement=https://$$1/${TRAEFIK_DEFAULT_ROUTE}"
+      - "traefik.http.middlewares.${DCPAPX_PROJECT_NAME}-add-context.redirectregex.regex=^https:\\/\\/([^\\/]+)\\/?$$"
+      - "traefik.http.middlewares.${DCPAPX_PROJECT_NAME}-add-context.redirectregex.replacement=https://$$1/${TRAEFIK_DEFAULT_ROUTE}"
 
-  traefik:
-    depends_on:
-      tomcat:
-        condition: service_started
+networks:
+  proxy:
+    name: dpex_proxy
+    external: true

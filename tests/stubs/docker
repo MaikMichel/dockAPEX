@@ -1,0 +1,5 @@
+#!/bin/bash
+# test stub: records the call instead of running docker; the shared network does not exist yet
+echo "STUB docker $*"
+[[ " $* " == *" inspect "* ]] && exit 1
+exit 0

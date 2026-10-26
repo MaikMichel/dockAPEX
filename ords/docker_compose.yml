@@ -15,9 +15,8 @@ services:
       - ddns_pwd
     environment:
       - APEX_VERSION=${APEX_VERSION}
-    container_name: ords
     ports:
-      - ${ORDS_PORT}:8080
+      - ${ORDS_PORT:-8080-8180}:8080
     restart: unless-stopped
     volumes:
       - ${DCKAPX_CONF_FILE}:/opt/oracle/config.env
@@ -25,7 +24,7 @@ services:
       - ords_dir:/opt/ords-${ORDS_VERSION}
     hostname: ords
     healthcheck:
-      test: '/scripts/healtcheck_tomcat_${TOMCAT}.sh ${ORDS_PORT}'
+      test: '/scripts/healtcheck_tomcat_${TOMCAT}.sh 8080'
       interval: 1m
       timeout: 30s
       retries: 45
