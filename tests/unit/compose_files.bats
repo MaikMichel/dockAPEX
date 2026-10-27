@@ -306,3 +306,48 @@ check_files() {
   assert_success
   assert_output --partial "proj2.localhost"
 }
+
+@test "the first certificate tells to restart the browser" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "quit your browser completely"
+  refute_output --partial "force-recreate"
+}
+
+@test "a renewed certificate tells to recreate traefik" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env certs
+  assert_success
+  sed -i.bak 's/^TRAEFIK_DOMAIN=.*/TRAEFIK_DOMAIN="dev.localhost"/' test.env
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "up --detach --force-recreate traefik"
+  refute_output --partial "quit your browser"
+}
+
+@test "an unchanged certificate prints no hint" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env certs
+  assert_success
+  run_dpex test.env certs
+  assert_success
+  refute_output --partial "quit your browser"
+  refute_output --partial "force-recreate"
+}
+
+@test "up of a project behind an external traefik on localhost names the todo" {
+  make_env TRAEFIK_EXTERNAL=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env up --detach
+  assert_success
+  assert_output --partial "comes from the traefik of the other stack"
+  assert_output --partial "needs test in TRAEFIK_LOCAL_PROJECTS"
+  refute_output --partial "STUB mkcert"
+}
+
+@test "up behind an external traefik on a real domain prints no certificate hint" {
+  make_env TRAEFIK_EXTERNAL=true TRAEFIK_DOMAIN=example.org
+  run_dpex test.env up --detach
+  assert_success
+  refute_output --partial "TRAEFIK_LOCAL_PROJECTS"
+}

@@ -127,6 +127,8 @@ With Traefik every project is routed by its own subdomain: `https://<project>.<T
 
 > After the first `mkcert -install` quit your browser completely (Chrome: `chrome://restart`, Safari / Firefox: Cmd+Q) and start it again. A running browser keeps showing "not secure" for the new certificates.
 
+Traefik does not reload a renewed certificate by itself: after `up` / `certs` created a new one (e.g. a project was added to `TRAEFIK_LOCAL_PROJECTS`) recreate it with `./dpex.sh <name>.env up --detach --force-recreate traefik`. `up` and `certs` print these hints.
+
 Only one Traefik can bind 80 / 443 per host. Run it in its own env file and let the other stacks use it:
 
 ```bash

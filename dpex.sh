@@ -279,6 +279,10 @@ function ensure_local_certs() {
     exit 2
   fi
 
+  # names known from an earlier run: traefik may be running with the old certificate
+  local renewed=false
+  [[ -f "${DCKAPX_CERT_DIR}/names" ]] && renewed=true
+
   echo_info "Creating certificates for ${names} in ${DCKAPX_CERT_DIR}"
   mkdir -p "${DCKAPX_CERT_DIR}"
   # the private key must not end up in the repository
@@ -288,6 +292,14 @@ function ensure_local_certs() {
     && mkcert -cert-file "${DCKAPX_CERT_DIR}/local.pem" -key-file "${DCKAPX_CERT_DIR}/local-key.pem" ${names} \
     && echo "${names}" > "${DCKAPX_CERT_DIR}/names" \
     || exit 1
+
+  if [[ "${renewed}" == true ]]; then
+    echo_info "If traefik is already running it has to reload the certificate:"
+    echo_info "  $0 $(basename "${DCKAPX_CONF_FILE}") up --detach --force-recreate traefik"
+  else
+    echo_info "First certificate: quit your browser completely once so that it trusts the mkcert CA"
+    echo_info "  (Chrome: chrome://restart, Safari / Firefox: Cmd+Q)"
+  fi
 }
 
 function clear_containers() {
@@ -416,6 +428,10 @@ case ${1} in
   *)
     if [[ ${1} == "up" && "$TRAEFIK" == true && "$DCKAPX_LOCAL_TLS" == true ]]; then
       ensure_local_certs
+    fi
+    if [[ ${1} == "up" && "$TRAEFIK_EXTERNAL" == true && "$DCKAPX_LOCAL_TLS" == true ]]; then
+      echo_info "The certificate for ${TRAEFIK_DOMAIN} comes from the traefik of the other stack."
+      echo_info "It needs ${DCPAPX_PROJECT_NAME} in TRAEFIK_LOCAL_PROJECTS of that env file, then run certs and recreate its traefik."
     fi
     # the network shared with traefik is external, so it has to exist before up
     if [[ ${1} == "up" && "$DCKAPX_ROUTED" == true ]]; then
