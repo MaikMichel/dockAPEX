@@ -108,7 +108,9 @@ Docker assigns the port when the container starts, so it can change after a stop
 
 ### Traefik: one proxy, many projects
 
-With Traefik every project is routed by its own subdomain: `https://<project>.<TRAEFIK_DOMAIN>/` (the project is the env file name, `_` becomes `-`). Locally `TRAEFIK_DOMAIN="localhost"` works, browsers resolve `<project>.localhost` without DNS. For real domains every subdomain needs a DNS record (or a wildcard record), Let's Encrypt needs ports 80 / 443.
+With Traefik every project is routed by its own subdomain: `https://<project>.<TRAEFIK_DOMAIN>/` (the project is the env file name, `_` becomes `-`). For real domains every subdomain needs a DNS record (or a wildcard record), Let's Encrypt needs ports 80 / 443.
+
+**Local development:** with `TRAEFIK_DOMAIN="localhost"` (or `*.localhost`) the certificates come from [mkcert](https://github.com/FiloSottile/mkcert) instead of Let's Encrypt, so `https://<project>.localhost/` is trusted by your browser. Browsers resolve `*.localhost` without DNS, `TRAEFIK_LETSENCRYPT_EMAIL` is not needed. Install mkcert first: `brew install mkcert` (macOS), your package manager or the [release binary](https://github.com/FiloSottile/mkcert/releases) (Linux), `choco install mkcert` / `scoop install mkcert` (Windows, git-bash). Firefox additionally needs nss (`brew install nss` / `apt install libnss3-tools`). `up` then runs `mkcert -install` (trusts the local CA, may ask for your password) and creates the certificate in `<name>.certs/` next to the env file (added to `.gitignore`); `./dpex.sh <name>.env certs` does only that. The certificate is created for `TRAEFIK_DOMAIN` and `<project>.<TRAEFIK_DOMAIN>` and renewed when one of them changes. It covers only the project of that env file, a Traefik that routes several projects (below) needs a certificate with their names as well.
 
 Only one Traefik can bind 80 / 443 per host. Run it in its own env file and let the other stacks use it:
 

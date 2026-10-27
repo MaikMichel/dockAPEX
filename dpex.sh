@@ -25,6 +25,7 @@ function usage() {
   echo "    genfile > creates an .env and .sec file based on all known vars"
   echo "    clear   > removes all container and images, prunes allocated space"
   echo "    ports   > shows the host ports of the running services"
+  echo "    certs   > creates the mkcert certificates for a localhost TRAEFIK_DOMAIN"
   echo ""
   echo "    compose-comand   > redirected to docker-compose"
   echo ""
@@ -91,7 +92,8 @@ function validate_mailpit_params() {
 }
 
 function validate_trfk_params() {
-  check_params "TRAEFIK_DEFAULT_ROUTE" "TRAEFIK_DOMAIN" "TRAEFIK_DASHBOARD" "TRAEFIK_LETSENCRYPT_EMAIL"
+  check_params "TRAEFIK_DEFAULT_ROUTE" "TRAEFIK_DOMAIN" "TRAEFIK_DASHBOARD"
+  [[ "$DCKAPX_LOCAL_TLS" == true ]] || check_params "TRAEFIK_LETSENCRYPT_EMAIL"
   check_secret "TRFK_USERPWD"
 }
 
@@ -142,6 +144,16 @@ DCKAPX_COMP_FILES=""
 DCKAPX_ROUTED=false
 if [[ "$TRAEFIK" == true ]] || [[ "$TRAEFIK_EXTERNAL" == true ]]; then
   DCKAPX_ROUTED=true
+fi
+
+# a localhost domain gets its certificates from mkcert, every other one from Let's Encrypt
+DCKAPX_LOCAL_TLS=false
+case "$(tr '[:upper:]' '[:lower:]' <<<"${TRAEFIK_DOMAIN}")" in
+  localhost|*.localhost) DCKAPX_LOCAL_TLS=true ;;
+esac
+export DCKAPX_CERTRESOLVER=myresolver
+if [[ "$DCKAPX_ROUTED" == true && "$DCKAPX_LOCAL_TLS" == true ]]; then
+  DCKAPX_CERTRESOLVER=
 fi
 
 # check only when argument 2 is not genfiles
@@ -223,6 +235,12 @@ if [[ ${2} != "genfiles" ]]; then
     DCKAPX_COMP_FILES+="-f ${path_ref}traefik/docker_compose.yml "
 
     validate_trfk_params
+
+    if [[ "$DCKAPX_LOCAL_TLS" == true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}traefik/docker_compose_localcert.yml "
+      DCKAPX_CERT_DIR="$(dirname "${DCKAPX_CONF_FILE}")/${DCPAPX_PROJECT_NAME}.certs"
+      export DCKAPX_CERT_DIR
+    fi
   fi
 
   if [[ "$TRAEFIK_EXTERNAL" == true ]]; then
@@ -233,6 +251,34 @@ fi
 # arg1 => file, entfernen, den Rest geben wir an compose weiter
 shift
 DCKAPX_COMMAND="$*"
+
+# certificates for traefik and the project subdomain, trusted by the browser through the mkcert CA
+function ensure_local_certs() {
+  local names="${TRAEFIK_DOMAIN} ${DCPAPX_HOST}.${TRAEFIK_DOMAIN}"
+
+  if [[ -f "${DCKAPX_CERT_DIR}/local.pem" && -f "${DCKAPX_CERT_DIR}/local-key.pem" \
+        && "$(cat "${DCKAPX_CERT_DIR}/names" 2>/dev/null)" == "${names}" ]]; then
+    return
+  fi
+
+  if ! command -v mkcert >/dev/null; then
+    echo_error "mkcert is required for TRAEFIK_DOMAIN=${TRAEFIK_DOMAIN}"
+    echo_info "macOS: brew install mkcert | Linux: your package manager or https://github.com/FiloSottile/mkcert/releases"
+    echo_info "Windows (git-bash): choco install mkcert | scoop install mkcert"
+    echo_info "Firefox additionally needs nss (brew install nss | apt install libnss3-tools)"
+    exit 2
+  fi
+
+  echo_info "Creating certificates for ${names} in ${DCKAPX_CERT_DIR}"
+  mkdir -p "${DCKAPX_CERT_DIR}"
+  # the private key must not end up in the repository
+  touch ".gitignore"
+  write_line_if_not_exists "${DCPAPX_PROJECT_NAME}.certs/" ".gitignore"
+  mkcert -install \
+    && mkcert -cert-file "${DCKAPX_CERT_DIR}/local.pem" -key-file "${DCKAPX_CERT_DIR}/local-key.pem" ${names} \
+    && echo "${names}" > "${DCKAPX_CERT_DIR}/names" \
+    || exit 1
+}
 
 function clear_containers() {
   local arg=${1}
@@ -343,7 +389,18 @@ case ${1} in
   'ports')
     show_ports
     ;;
+  'certs')
+    if [[ "$TRAEFIK" == true && "$DCKAPX_LOCAL_TLS" == true ]]; then
+      ensure_local_certs
+    else
+      echo_error "certs requires TRAEFIK=true and a localhost TRAEFIK_DOMAIN"
+      exit 2
+    fi
+    ;;
   *)
+    if [[ ${1} == "up" && "$TRAEFIK" == true && "$DCKAPX_LOCAL_TLS" == true ]]; then
+      ensure_local_certs
+    fi
     # the network shared with traefik is external, so it has to exist before up
     if [[ ${1} == "up" && "$DCKAPX_ROUTED" == true ]]; then
       docker network inspect dpex_proxy >/dev/null 2>&1 || docker network create dpex_proxy

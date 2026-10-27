@@ -1,0 +1,7 @@
+# TRAEFIK_DOMAIN is localhost: serve the mkcert certificates instead of asking Let's Encrypt
+# paths are relative to the first compose file, which sits in a sibling directory
+services:
+  traefik:
+    volumes:
+      - ${DCKAPX_CERT_DIR}:/certs:ro
+      - ../traefik/tls_local.yml:/etc/traefik/tls.yml:ro

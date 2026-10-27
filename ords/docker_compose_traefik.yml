@@ -8,7 +8,8 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-ords.rule=Host(`${DCPAPX_HOST}.${TRAEFIK_DOMAIN}`)"
       - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-ords.entrypoints=websecure"
-      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-ords.tls.certresolver=myresolver"
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-ords.tls=true"
+      - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-ords.tls.certresolver=${DCKAPX_CERTRESOLVER}"
       # the middleware must be defined so that the regex rules can be attached to it
       - "traefik.http.routers.${DCPAPX_PROJECT_NAME}-ords.middlewares=${DCPAPX_PROJECT_NAME}-add-context"
 

@@ -26,12 +26,15 @@ services:
       - "--entrypoints.websecure.http.aliasHeadersStrategy=delete"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # certificates of a localhost domain, see docker_compose_localcert.yml
+      - "--providers.file.filename=/etc/traefik/tls.yml"
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
       - "--certificatesresolvers.myresolver.acme.email=${TRAEFIK_LETSENCRYPT_EMAIL}"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     volumes:
       - tfk_conf:/letsencrypt
+      - ../traefik/tls_none.yml:/etc/traefik/tls.yml:ro
       - tfk_logs:/logs
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     secrets:
@@ -53,7 +56,7 @@ services:
       # #### set TLS
       - "traefik.http.routers.traefik.tls=true"
       - "traefik.http.routers.traefik.entrypoints=websecure"
-      - "traefik.http.routers.traefik.tls.certresolver=myresolver"
+      - "traefik.http.routers.traefik.tls.certresolver=${DCKAPX_CERTRESOLVER}"
 
 networks:
   proxy:

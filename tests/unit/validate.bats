@@ -96,3 +96,14 @@ teardown() { teardown_env; }
   assert_failure 2
   assert_output --partial "TRAEFIK_DOMAIN"
 }
+
+@test "TRAEFIK needs the Let's Encrypt email for an external domain only" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=example.org TRAEFIK_LETSENCRYPT_EMAIL=
+  run_dpex test.env config
+  assert_failure 2
+  assert_output --partial "TRAEFIK_LETSENCRYPT_EMAIL"
+
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost TRAEFIK_LETSENCRYPT_EMAIL=
+  run_dpex test.env config
+  assert_success
+}
