@@ -271,3 +271,19 @@ check_files() {
   assert_failure 2
   assert_output --partial "localhost"
 }
+
+@test "ports of a routed mailpit show the /mailpit/ path" {
+  make_env MAILPIT=true TRAEFIK_EXTERNAL=true TRAEFIK_DOMAIN=example.org
+  run_dpex test.env ports
+  assert_success
+  assert_output --partial "https://test.example.org/mailpit/"
+  assert_output --partial "http://localhost:49153/mailpit/"
+}
+
+@test "ports of a mailpit without traefik show the plain port" {
+  make_env MAILPIT=true
+  run_dpex test.env ports
+  assert_success
+  assert_output --partial "mailpit    http://localhost:49153"
+  refute_output --partial "/mailpit/"
+}

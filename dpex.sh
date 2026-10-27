@@ -316,7 +316,7 @@ function clear_containers() {
 
 # prints the host address of every enabled service (ports are assigned by docker at start)
 function show_ports() {
-  local entries=() e svc cport label addr
+  local entries=() e svc cport label addr suffix
   [[ "$DB" == true ]] && entries+=("database:1521:")
   [[ "$ORDS" == true ]] && entries+=("ords:8080:http://")
   [[ "$TOMCAT" == true ]] && entries+=("tomcat:9080:http://")
@@ -327,14 +327,20 @@ function show_ports() {
   if [[ "$DCKAPX_ROUTED" == true ]] && [[ "$ORDS" == true || "$TOMCAT" == true || "$MAILPIT" == true ]]; then
     printf '  %-10s https://%s.%s/\n' "traefik" "${DCPAPX_HOST}" "${TRAEFIK_DOMAIN}"
   fi
+  if [[ "$DCKAPX_ROUTED" == true && "$MAILPIT" == true ]]; then
+    printf '  %-10s https://%s.%s/mailpit/\n' "mailpit" "${DCPAPX_HOST}" "${TRAEFIK_DOMAIN}"
+  fi
   if [[ "$TRAEFIK" == true && "$TRAEFIK_DASHBOARD" == true ]]; then
     printf '  %-10s https://%s/traefik/\n' "dashboard" "${TRAEFIK_DOMAIN}"
   fi
   for e in "${entries[@]}"; do
     IFS=: read -r svc cport label <<<"${e}"
+    # routed by traefik mailpit lives below /mailpit (MP_WEBROOT), the direct port too
+    suffix=""
+    [[ "${svc}" == mailpit && "$DCKAPX_ROUTED" == true ]] && suffix="/mailpit/"
     addr=$(docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} port ${svc} ${cport} 2>/dev/null | tail -n 1)
     if [[ -n "${addr}" ]]; then
-      printf '  %-10s %slocalhost:%s\n' "${svc}" "${label}" "${addr##*:}"
+      printf '  %-10s %slocalhost:%s%s\n' "${svc}" "${label}" "${addr##*:}" "${suffix}"
     else
       printf '  %-10s not running\n' "${svc}"
     fi

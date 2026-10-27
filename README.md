@@ -90,7 +90,7 @@ Put the output into the *name*.sec file. Docker secrets are read when the contai
 
 ## Development mail server (Mailpit)
 
-Set `MAILPIT=true` in your env file to catch all mails sent by APEX / the database. The web UI is available on `http://localhost:<port>` (see `ports`, default range 8025-8125), or on `https://<project>.<TRAEFIK_DOMAIN>/mailpit` when Traefik is enabled (protected by the Traefik dashboard login). To send mails to it, configure:
+Set `MAILPIT=true` in your env file to catch all mails sent by APEX / the database. The web UI is available on `http://localhost:<port>` (see `ports`, default range 8025-8125), or on `https://<project>.<TRAEFIK_DOMAIN>/mailpit/` when Traefik is enabled (protected by the Traefik dashboard login). With Traefik enabled Mailpit lives below `/mailpit/` on the direct port as well, `http://localhost:<port>/` answers 404. To send mails to it, configure:
 
 ```bash
 # demo.env
