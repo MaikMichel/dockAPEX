@@ -75,6 +75,19 @@ It is sufficient to edit the settings in the *name*.sec file.
 
 The secrets themselves are passed on to the containers via docker secrets.
 
+#### Traefik dashboard login (`TRFK_USERPWD`)
+
+The dashboard and Mailpit are protected by digest auth. `TRFK_USERPWD` has the form `user:traefik:<hash>`, the realm has to be `traefik` and the hash is `MD5(user:traefik:password)` (not the `openssl passwd -apr1` hash of basic auth):
+
+```bash
+# macOS
+echo "admin:traefik:$(printf 'admin:traefik:YOURPASSWORD' | md5 -q)"
+# Linux / git-bash
+echo "admin:traefik:$(printf 'admin:traefik:YOURPASSWORD' | md5sum | cut -d' ' -f1)"
+```
+
+Put the output into the *name*.sec file. Docker secrets are read when the container is created, so recreate Traefik afterwards: `./dpex.sh <name>.env up --detach --force-recreate traefik`. Check the login with `curl -k --digest -u admin:YOURPASSWORD https://<TRAEFIK_DOMAIN>/traefik/api/overview`.
+
 ## Development mail server (Mailpit)
 
 Set `MAILPIT=true` in your env file to catch all mails sent by APEX / the database. The web UI is available on `http://localhost:<port>` (see `ports`, default range 8025-8125), or on `https://<project>.<TRAEFIK_DOMAIN>/mailpit` when Traefik is enabled (protected by the Traefik dashboard login). To send mails to it, configure:
