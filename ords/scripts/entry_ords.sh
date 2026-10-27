@@ -179,8 +179,8 @@ EOF
   fi
 
 
-  if [[ ${TRAEFIK,,} == "true" ]]; then
-    # Add forceHTTPs, when TRAEFIK (Reverse Proxy) Mode
+  if [[ ${TRAEFIK,,} == "true" || ${TRAEFIK_EXTERNAL,,} == "true" ]]; then
+    # Add forceHTTPs, when TRAEFIK or TRAEFIK_EXTERNAL (Reverse Proxy) Mode
     SETTINGS_XML="${ORDS_CONF_DIR}/global/settings.xml"
     FORCS_HTML='<entry key="security.forceHTTPS">true</entry>'
     sed -i "/<\/properties>/i ${FORCS_HTML}" "${SETTINGS_XML}"
