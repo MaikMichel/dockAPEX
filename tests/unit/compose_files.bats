@@ -287,3 +287,22 @@ check_files() {
   assert_output --partial "mailpit    http://localhost:49153"
   refute_output --partial "/mailpit/"
 }
+
+@test "TRAEFIK_LOCAL_PROJECTS adds the subdomains of the other projects to the certificate" {
+  make_env DB=false APEX=false ORDS=false TRAEFIK=true TRAEFIK_DOMAIN=localhost 'TRAEFIK_LOCAL_PROJECTS=proj1 My_Proj2'
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "localhost test.localhost proj1.localhost my-proj2.localhost"
+}
+
+@test "TRAEFIK_LOCAL_PROJECTS does not repeat a name and renews the certificate on change" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost 'TRAEFIK_LOCAL_PROJECTS=test proj1'
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "localhost test.localhost proj1.localhost"
+  refute_output --partial "test.localhost test.localhost"
+  sed -i.bak 's/^TRAEFIK_LOCAL_PROJECTS=.*/TRAEFIK_LOCAL_PROJECTS="proj1 proj2"/' test.env
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "proj2.localhost"
+}

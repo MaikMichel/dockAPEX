@@ -123,7 +123,9 @@ Docker assigns the port when the container starts, so it can change after a stop
 
 With Traefik every project is routed by its own subdomain: `https://<project>.<TRAEFIK_DOMAIN>/` (the project is the env file name, `_` becomes `-`). For real domains every subdomain needs a DNS record (or a wildcard record), Let's Encrypt needs ports 80 / 443.
 
-**Local development:** with `TRAEFIK_DOMAIN="localhost"` (or `*.localhost`) the certificates come from [mkcert](https://github.com/FiloSottile/mkcert) instead of Let's Encrypt, so `https://<project>.localhost/` is trusted by your browser. Browsers resolve `*.localhost` without DNS, `TRAEFIK_LETSENCRYPT_EMAIL` is not needed. Install mkcert first: `brew install mkcert` (macOS), your package manager or the [release binary](https://github.com/FiloSottile/mkcert/releases) (Linux), `choco install mkcert` / `scoop install mkcert` (Windows, git-bash). Firefox additionally needs nss (`brew install nss` / `apt install libnss3-tools`). `up` then runs `mkcert -install` (trusts the local CA, may ask for your password) and creates the certificate in `<name>.certs/` next to the env file (added to `.gitignore`); `./dpex.sh <name>.env certs` does only that. The certificate is created for `TRAEFIK_DOMAIN` and `<project>.<TRAEFIK_DOMAIN>` and renewed when one of them changes. It covers only the project of that env file, a Traefik that routes several projects (below) needs a certificate with their names as well.
+**Local development:** with `TRAEFIK_DOMAIN="localhost"` (or `*.localhost`) the certificates come from [mkcert](https://github.com/FiloSottile/mkcert) instead of Let's Encrypt, so `https://<project>.localhost/` is trusted by your browser. Browsers resolve `*.localhost` without DNS, `TRAEFIK_LETSENCRYPT_EMAIL` is not needed. Install mkcert first: `brew install mkcert` (macOS), your package manager or the [release binary](https://github.com/FiloSottile/mkcert/releases) (Linux), `choco install mkcert` / `scoop install mkcert` (Windows, git-bash). Firefox additionally needs nss (`brew install nss` / `apt install libnss3-tools`). `up` then runs `mkcert -install` (trusts the local CA, may ask for your password) and creates the certificate in `<name>.certs/` next to the env file (added to `.gitignore`); `./dpex.sh <name>.env certs` does only that. The certificate is created for `TRAEFIK_DOMAIN`, `<project>.<TRAEFIK_DOMAIN>` and the names in `TRAEFIK_LOCAL_PROJECTS` (below) and renewed when one of them changes.
+
+> After the first `mkcert -install` quit your browser completely (Chrome: `chrome://restart`, Safari / Firefox: Cmd+Q) and start it again. A running browser keeps showing "not secure" for the new certificates.
 
 Only one Traefik can bind 80 / 443 per host. Run it in its own env file and let the other stacks use it:
 
@@ -133,6 +135,15 @@ Only one Traefik can bind 80 / 443 per host. Run it in its own env file and let 
 ./dpex.sh traefik.env up --detach
 ./dpex.sh proj1.env up --detach       # https://proj1.<TRAEFIK_DOMAIN>/
 ./dpex.sh proj2.env up --detach       # https://proj2.<TRAEFIK_DOMAIN>/
+```
+
+With a localhost domain the Traefik env file has to know the other projects, because the mkcert certificate is created for exact names (browsers and curl reject `*.localhost` wildcards). List the env file names of the projects in `TRAEFIK_LOCAL_PROJECTS`; the certificate is renewed on the next `up` or `certs`:
+
+```bash
+# traefik.env
+TRAEFIK=true
+TRAEFIK_DOMAIN="localhost"
+TRAEFIK_LOCAL_PROJECTS="proj1 proj2"   # https://proj1.localhost/, https://proj2.localhost/
 ```
 
 `TRAEFIK=true` together with ORDS / Tomcat in one env file still works (single stack). Both flags are exclusive. The stacks talk through the docker network `dpex_proxy`, which `up` creates when missing. The Traefik dashboard stays on `https://<TRAEFIK_DOMAIN>/traefik`.

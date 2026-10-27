@@ -259,7 +259,12 @@ DCKAPX_COMMAND="$*"
 
 # certificates for traefik and the project subdomain, trusted by the browser through the mkcert CA
 function ensure_local_certs() {
-  local names="${TRAEFIK_DOMAIN} ${DCPAPX_HOST}.${TRAEFIK_DOMAIN}"
+  local names="${TRAEFIK_DOMAIN} ${DCPAPX_HOST}.${TRAEFIK_DOMAIN}" p host
+  # other projects routed by this traefik, named like DCPAPX_HOST
+  for p in ${TRAEFIK_LOCAL_PROJECTS}; do
+    host="$(tr '[:upper:]_.' '[:lower:]--' <<<"${p}").${TRAEFIK_DOMAIN}"
+    [[ " ${names} " == *" ${host} "* ]] || names+=" ${host}"
+  done
 
   if [[ -f "${DCKAPX_CERT_DIR}/local.pem" && -f "${DCKAPX_CERT_DIR}/local-key.pem" \
         && "$(cat "${DCKAPX_CERT_DIR}/names" 2>/dev/null)" == "${names}" ]]; then
