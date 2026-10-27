@@ -1,0 +1,5 @@
+# certificates created by "dpex.sh <name>.env certs" (mkcert), mounted to /certs
+tls:
+  certificates:
+    - certFile: /certs/local.pem
+      keyFile: /certs/local-key.pem

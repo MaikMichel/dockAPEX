@@ -25,6 +25,7 @@ function usage() {
   echo "    genfile > creates an .env and .sec file based on all known vars"
   echo "    clear   > removes all container and images, prunes allocated space"
   echo "    ports   > shows the host ports of the running services"
+  echo "    certs   > creates the mkcert certificates for a localhost TRAEFIK_DOMAIN"
   echo ""
   echo "    compose-comand   > redirected to docker-compose"
   echo ""
@@ -91,8 +92,14 @@ function validate_mailpit_params() {
 }
 
 function validate_trfk_params() {
-  check_params "TRAEFIK_DEFAULT_ROUTE" "TRAEFIK_DOMAIN" "TRAEFIK_DASHBOARD" "TRAEFIK_LETSENCRYPT_EMAIL"
+  check_params "TRAEFIK_DEFAULT_ROUTE" "TRAEFIK_DOMAIN" "TRAEFIK_DASHBOARD"
+  [[ "$DCKAPX_LOCAL_TLS" == true ]] || check_params "TRAEFIK_LETSENCRYPT_EMAIL"
   check_secret "TRFK_USERPWD"
+  # digest auth: user:realm:MD5(user:realm:password), see _template/_template_sec
+  if [[ ! "$TRFK_USERPWD" =~ ^[^:]+:traefik:[0-9a-fA-F]{32}$ ]]; then
+    echo_error "TRFK_USERPWD must look like user:traefik:<md5 hash>, see _template/_template_sec"
+    exit 2
+  fi
 }
 
 # routed by a traefik of another stack, only the routing needs to be known
@@ -142,6 +149,16 @@ DCKAPX_COMP_FILES=""
 DCKAPX_ROUTED=false
 if [[ "$TRAEFIK" == true ]] || [[ "$TRAEFIK_EXTERNAL" == true ]]; then
   DCKAPX_ROUTED=true
+fi
+
+# a localhost domain gets its certificates from mkcert, every other one from Let's Encrypt
+DCKAPX_LOCAL_TLS=false
+case "$(tr '[:upper:]' '[:lower:]' <<<"${TRAEFIK_DOMAIN}")" in
+  localhost|*.localhost) DCKAPX_LOCAL_TLS=true ;;
+esac
+export DCKAPX_CERTRESOLVER=myresolver
+if [[ "$DCKAPX_ROUTED" == true && "$DCKAPX_LOCAL_TLS" == true ]]; then
+  DCKAPX_CERTRESOLVER=
 fi
 
 # check only when argument 2 is not genfiles
@@ -223,6 +240,12 @@ if [[ ${2} != "genfiles" ]]; then
     DCKAPX_COMP_FILES+="-f ${path_ref}traefik/docker_compose.yml "
 
     validate_trfk_params
+
+    if [[ "$DCKAPX_LOCAL_TLS" == true ]]; then
+      DCKAPX_COMP_FILES+="-f ${path_ref}traefik/docker_compose_localcert.yml "
+      DCKAPX_CERT_DIR="$(dirname "${DCKAPX_CONF_FILE}")/${DCPAPX_PROJECT_NAME}.certs"
+      export DCKAPX_CERT_DIR
+    fi
   fi
 
   if [[ "$TRAEFIK_EXTERNAL" == true ]]; then
@@ -233,6 +256,51 @@ fi
 # arg1 => file, entfernen, den Rest geben wir an compose weiter
 shift
 DCKAPX_COMMAND="$*"
+
+# certificates for traefik and the project subdomain, trusted by the browser through the mkcert CA
+function ensure_local_certs() {
+  local names="${TRAEFIK_DOMAIN} ${DCPAPX_HOST}.${TRAEFIK_DOMAIN}" p host
+  # other projects routed by this traefik, named like DCPAPX_HOST
+  for p in ${TRAEFIK_LOCAL_PROJECTS}; do
+    host="$(tr '[:upper:]_.' '[:lower:]--' <<<"${p}").${TRAEFIK_DOMAIN}"
+    [[ " ${names} " == *" ${host} "* ]] || names+=" ${host}"
+  done
+
+  if [[ -f "${DCKAPX_CERT_DIR}/local.pem" && -f "${DCKAPX_CERT_DIR}/local-key.pem" \
+        && "$(cat "${DCKAPX_CERT_DIR}/names" 2>/dev/null)" == "${names}" ]]; then
+    return
+  fi
+
+  if ! command -v mkcert >/dev/null; then
+    echo_error "mkcert is required for TRAEFIK_DOMAIN=${TRAEFIK_DOMAIN}"
+    echo_info "macOS: brew install mkcert | Linux: your package manager or https://github.com/FiloSottile/mkcert/releases"
+    echo_info "Windows (git-bash): choco install mkcert | scoop install mkcert"
+    echo_info "Firefox additionally needs nss (brew install nss | apt install libnss3-tools)"
+    exit 2
+  fi
+
+  # names known from an earlier run: traefik may be running with the old certificate
+  local renewed=false
+  [[ -f "${DCKAPX_CERT_DIR}/names" ]] && renewed=true
+
+  echo_info "Creating certificates for ${names} in ${DCKAPX_CERT_DIR}"
+  mkdir -p "${DCKAPX_CERT_DIR}"
+  # the private key must not end up in the repository
+  touch ".gitignore"
+  write_line_if_not_exists "${DCPAPX_PROJECT_NAME}.certs/" ".gitignore"
+  mkcert -install \
+    && mkcert -cert-file "${DCKAPX_CERT_DIR}/local.pem" -key-file "${DCKAPX_CERT_DIR}/local-key.pem" ${names} \
+    && echo "${names}" > "${DCKAPX_CERT_DIR}/names" \
+    || exit 1
+
+  if [[ "${renewed}" == true ]]; then
+    echo_info "If traefik is already running it has to reload the certificate:"
+    echo_info "  $0 $(basename "${DCKAPX_CONF_FILE}") up --detach --force-recreate traefik"
+  else
+    echo_info "First certificate: quit your browser completely once so that it trusts the mkcert CA"
+    echo_info "  (Chrome: chrome://restart, Safari / Firefox: Cmd+Q)"
+  fi
+}
 
 function clear_containers() {
   local arg=${1}
@@ -265,7 +333,7 @@ function clear_containers() {
 
 # prints the host address of every enabled service (ports are assigned by docker at start)
 function show_ports() {
-  local entries=() e svc cport label addr
+  local entries=() e svc cport label addr suffix
   [[ "$DB" == true ]] && entries+=("database:1521:")
   [[ "$ORDS" == true ]] && entries+=("ords:8080:http://")
   [[ "$TOMCAT" == true ]] && entries+=("tomcat:9080:http://")
@@ -276,14 +344,20 @@ function show_ports() {
   if [[ "$DCKAPX_ROUTED" == true ]] && [[ "$ORDS" == true || "$TOMCAT" == true || "$MAILPIT" == true ]]; then
     printf '  %-10s https://%s.%s/\n' "traefik" "${DCPAPX_HOST}" "${TRAEFIK_DOMAIN}"
   fi
+  if [[ "$DCKAPX_ROUTED" == true && "$MAILPIT" == true ]]; then
+    printf '  %-10s https://%s.%s/mailpit/\n' "mailpit" "${DCPAPX_HOST}" "${TRAEFIK_DOMAIN}"
+  fi
   if [[ "$TRAEFIK" == true && "$TRAEFIK_DASHBOARD" == true ]]; then
     printf '  %-10s https://%s/traefik/\n' "dashboard" "${TRAEFIK_DOMAIN}"
   fi
   for e in "${entries[@]}"; do
     IFS=: read -r svc cport label <<<"${e}"
+    # routed by traefik mailpit lives below /mailpit (MP_WEBROOT), the direct port too
+    suffix=""
+    [[ "${svc}" == mailpit && "$DCKAPX_ROUTED" == true ]] && suffix="/mailpit/"
     addr=$(docker-compose --project-name ${DCPAPX_PROJECT_NAME} ${DCKAPX_COMP_FILES} port ${svc} ${cport} 2>/dev/null | tail -n 1)
     if [[ -n "${addr}" ]]; then
-      printf '  %-10s %slocalhost:%s\n' "${svc}" "${label}" "${addr##*:}"
+      printf '  %-10s %slocalhost:%s%s\n' "${svc}" "${label}" "${addr##*:}" "${suffix}"
     else
       printf '  %-10s not running\n' "${svc}"
     fi
@@ -343,7 +417,22 @@ case ${1} in
   'ports')
     show_ports
     ;;
+  'certs')
+    if [[ "$TRAEFIK" == true && "$DCKAPX_LOCAL_TLS" == true ]]; then
+      ensure_local_certs
+    else
+      echo_error "certs requires TRAEFIK=true and a localhost TRAEFIK_DOMAIN"
+      exit 2
+    fi
+    ;;
   *)
+    if [[ ${1} == "up" && "$TRAEFIK" == true && "$DCKAPX_LOCAL_TLS" == true ]]; then
+      ensure_local_certs
+    fi
+    if [[ ${1} == "up" && "$TRAEFIK_EXTERNAL" == true && "$DCKAPX_LOCAL_TLS" == true ]]; then
+      echo_info "The certificate for ${TRAEFIK_DOMAIN} comes from the traefik of the other stack."
+      echo_info "It needs ${DCPAPX_PROJECT_NAME} in TRAEFIK_LOCAL_PROJECTS of that env file, then run certs and recreate its traefik."
+    fi
     # the network shared with traefik is external, so it has to exist before up
     if [[ ${1} == "up" && "$DCKAPX_ROUTED" == true ]]; then
       docker network inspect dpex_proxy >/dev/null 2>&1 || docker network create dpex_proxy

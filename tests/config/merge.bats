@@ -149,3 +149,27 @@ teardown() { teardown_env; }
   assert_output --partial "--providers.docker.network=dpex_proxy"
   assert_output --partial "name: dpex_proxy"
 }
+
+# localhost domain: no resolver on the routers, the mkcert certificates are mounted instead
+@test "localhost domain serves the mkcert certificates and uses no resolver" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost MAILPIT=true
+  run_dpex_real test.env config
+  assert_success
+  assert_output --partial "/etc/traefik/tls.yml"
+  assert_output --partial "tls_local.yml"
+  assert_output --partial "test.certs"
+  refute_output --partial "tls_none.yml"
+  refute_output --partial "certresolver: myresolver"
+  assert_output --partial "traefik.http.routers.test-ords.tls: \"true\""
+}
+
+@test "external domain keeps Let's Encrypt and mounts no certificates" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=example.org MAILPIT=true
+  run_dpex_real test.env config
+  assert_success
+  assert_output --partial "tls_none.yml"
+  refute_output --partial "tls_local.yml"
+  assert_output --partial "traefik.http.routers.test-ords.tls.certresolver: myresolver"
+  assert_output --partial "traefik.http.routers.traefik.tls.certresolver: myresolver"
+  assert_output --partial "traefik.http.routers.test-mailpit.tls.certresolver: myresolver"
+}

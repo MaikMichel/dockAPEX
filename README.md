@@ -75,9 +75,22 @@ It is sufficient to edit the settings in the *name*.sec file.
 
 The secrets themselves are passed on to the containers via docker secrets.
 
+#### Traefik dashboard login (`TRFK_USERPWD`)
+
+The dashboard and Mailpit are protected by digest auth. `TRFK_USERPWD` has the form `user:traefik:<hash>`, the realm has to be `traefik` and the hash is `MD5(user:traefik:password)` (not the `openssl passwd -apr1` hash of basic auth):
+
+```bash
+# macOS
+echo "admin:traefik:$(printf 'admin:traefik:YOURPASSWORD' | md5 -q)"
+# Linux / git-bash
+echo "admin:traefik:$(printf 'admin:traefik:YOURPASSWORD' | md5sum | cut -d' ' -f1)"
+```
+
+Put the output into the *name*.sec file. Docker secrets are read when the container is created, so recreate Traefik afterwards: `./dpex.sh <name>.env up --detach --force-recreate traefik`. Check the login with `curl -k --digest -u admin:YOURPASSWORD https://<TRAEFIK_DOMAIN>/traefik/api/overview`.
+
 ## Development mail server (Mailpit)
 
-Set `MAILPIT=true` in your env file to catch all mails sent by APEX / the database. The web UI is available on `http://localhost:<port>` (see `ports`, default range 8025-8125), or on `https://<project>.<TRAEFIK_DOMAIN>/mailpit` when Traefik is enabled (protected by the Traefik dashboard login). To send mails to it, configure:
+Set `MAILPIT=true` in your env file to catch all mails sent by APEX / the database. The web UI is available on `http://localhost:<port>` (see `ports`, default range 8025-8125), or on `https://<project>.<TRAEFIK_DOMAIN>/mailpit/` when Traefik is enabled (protected by the Traefik dashboard login). With Traefik enabled Mailpit lives below `/mailpit/` on the direct port as well, `http://localhost:<port>/` answers 404. To send mails to it, configure:
 
 ```bash
 # demo.env
@@ -108,7 +121,13 @@ Docker assigns the port when the container starts, so it can change after a stop
 
 ### Traefik: one proxy, many projects
 
-With Traefik every project is routed by its own subdomain: `https://<project>.<TRAEFIK_DOMAIN>/` (the project is the env file name, `_` becomes `-`). Locally `TRAEFIK_DOMAIN="localhost"` works, browsers resolve `<project>.localhost` without DNS. For real domains every subdomain needs a DNS record (or a wildcard record), Let's Encrypt needs ports 80 / 443.
+With Traefik every project is routed by its own subdomain: `https://<project>.<TRAEFIK_DOMAIN>/` (the project is the env file name, `_` becomes `-`). For real domains every subdomain needs a DNS record (or a wildcard record), Let's Encrypt needs ports 80 / 443.
+
+**Local development:** with `TRAEFIK_DOMAIN="localhost"` (or `*.localhost`) the certificates come from [mkcert](https://github.com/FiloSottile/mkcert) instead of Let's Encrypt, so `https://<project>.localhost/` is trusted by your browser. Browsers resolve `*.localhost` without DNS, `TRAEFIK_LETSENCRYPT_EMAIL` is not needed. Install mkcert first: `brew install mkcert` (macOS), your package manager or the [release binary](https://github.com/FiloSottile/mkcert/releases) (Linux), `choco install mkcert` / `scoop install mkcert` (Windows, git-bash). Firefox additionally needs nss (`brew install nss` / `apt install libnss3-tools`). `up` then runs `mkcert -install` (trusts the local CA, may ask for your password) and creates the certificate in `<name>.certs/` next to the env file (added to `.gitignore`); `./dpex.sh <name>.env certs` does only that. The certificate is created for `TRAEFIK_DOMAIN`, `<project>.<TRAEFIK_DOMAIN>` and the names in `TRAEFIK_LOCAL_PROJECTS` (below) and renewed when one of them changes.
+
+> After the first `mkcert -install` quit your browser completely (Chrome: `chrome://restart`, Safari / Firefox: Cmd+Q) and start it again. A running browser keeps showing "not secure" for the new certificates.
+
+Traefik does not reload a renewed certificate by itself: after `up` / `certs` created a new one (e.g. a project was added to `TRAEFIK_LOCAL_PROJECTS`) recreate it with `./dpex.sh <name>.env up --detach --force-recreate traefik`. `up` and `certs` print these hints.
 
 Only one Traefik can bind 80 / 443 per host. Run it in its own env file and let the other stacks use it:
 
@@ -118,6 +137,15 @@ Only one Traefik can bind 80 / 443 per host. Run it in its own env file and let 
 ./dpex.sh traefik.env up --detach
 ./dpex.sh proj1.env up --detach       # https://proj1.<TRAEFIK_DOMAIN>/
 ./dpex.sh proj2.env up --detach       # https://proj2.<TRAEFIK_DOMAIN>/
+```
+
+With a localhost domain the Traefik env file has to know the other projects, because the mkcert certificate is created for exact names (browsers and curl reject `*.localhost` wildcards). List the env file names of the projects in `TRAEFIK_LOCAL_PROJECTS`; the certificate is renewed on the next `up` or `certs`:
+
+```bash
+# traefik.env
+TRAEFIK=true
+TRAEFIK_DOMAIN="localhost"
+TRAEFIK_LOCAL_PROJECTS="proj1 proj2"   # https://proj1.localhost/, https://proj2.localhost/
 ```
 
 `TRAEFIK=true` together with ORDS / Tomcat in one env file still works (single stack). Both flags are exclusive. The stacks talk through the docker network `dpex_proxy`, which `up` creates when missing. The Traefik dashboard stays on `https://<TRAEFIK_DOMAIN>/traefik`.

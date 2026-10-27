@@ -161,3 +161,6 @@ TRAEFIK_DOMAIN="${TRAEFIK_DOMAIN}"
 TRAEFIK_DASHBOARD="${TRAEFIK_DASHBOARD}"
 
 TRAEFIK_LETSENCRYPT_EMAIL="${TRAEFIK_LETSENCRYPT_EMAIL}"
+# localhost domain only: env file names of the other projects (TRAEFIK_EXTERNAL) routed by this traefik,
+# their subdomains are added to the mkcert certificate, e.g. "proj1 proj2"
+TRAEFIK_LOCAL_PROJECTS="${TRAEFIK_LOCAL_PROJECTS}"

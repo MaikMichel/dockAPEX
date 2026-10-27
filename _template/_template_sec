@@ -21,7 +21,8 @@ ORDS_PASSWORD="${ORDS_PASSWORD}"
 # PWD to make use of DynDNS
 ORDS_DDNS_PASSWORD="${ORDS_DDNS_PASSWORD}"
 
-# User and Password using TRAEFEIK Dashboard
-# echo "admin:$(openssl passwd -apr1 "TheSuperFancyPass")"
-# htdigest -c sec.sec traefik admin
+# User and Password using TRAEFEIK Dashboard (also protects Mailpit), digest auth: user:realm:MD5(user:realm:password)
+# the realm has to be "traefik", the secret is only read when the container is created
+# macOS:        echo "admin:traefik:$(printf 'admin:traefik:TheSuperFancyPass' | md5 -q)"
+# Linux/Windows: echo "admin:traefik:$(printf 'admin:traefik:TheSuperFancyPass' | md5sum | cut -d' ' -f1)"
 TRFK_USERPWD="${TRFK_USERPWD}"
