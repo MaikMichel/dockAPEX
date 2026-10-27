@@ -178,13 +178,23 @@ EOF
 
   fi
 
+}
 
-  if [[ ${TRAEFIK,,} == "true" || ${TRAEFIK_EXTERNAL,,} == "true" ]]; then
-    # Add forceHTTPs, when TRAEFIK or TRAEFIK_EXTERNAL (Reverse Proxy) Mode
-    SETTINGS_XML="${ORDS_CONF_DIR}/global/settings.xml"
-    FORCS_HTML='<entry key="security.forceHTTPS">true</entry>'
-    sed -i "/<\/properties>/i ${FORCS_HTML}" "${SETTINGS_XML}"
+# security.forceHTTPS follows the routing of the env file (TRAEFIK or TRAEFIK_EXTERNAL = reverse proxy),
+# so it is set or removed on every start and not only when ORDS is installed
+function config_force_https() {
+  local settings_xml="${ORDS_CONF_DIR}/global/settings.xml"
+  [[ -f "${settings_xml}" ]] || return 0
+
+  grep -v 'security.forceHTTPS' "${settings_xml}" > "${settings_xml}.tmp"
+  if [[ "$TRAEFIK" == true || "$TRAEFIK_EXTERNAL" == true ]]; then
+    output "INFO" "Reverse proxy mode, setting security.forceHTTPS"
+    awk '/<\/properties>/ { print "<entry key=\"security.forceHTTPS\">true</entry>" } { print }' \
+      "${settings_xml}.tmp" > "${settings_xml}"
+  else
+    cat "${settings_xml}.tmp" > "${settings_xml}"
   fi
+  rm "${settings_xml}.tmp"
 }
 
 function check_ords_version() {
@@ -242,6 +252,8 @@ EOF
 }
 
 function run_ords() {
+  config_force_https
+
   # ords_entrypoint_dir
   # config_sdw
   if [ -e $ORDS_CONF_DIR/databases/default/pool.xml ]; then
