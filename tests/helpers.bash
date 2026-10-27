@@ -28,7 +28,7 @@ make_env() {
     echo 'ORDS_PASSWORD="dummy-ords"'
     echo 'SMTP_PASSWORD="dummy-smtp"'
     echo 'ORDS_DDNS_PASSWORD="dummy-ddns"'
-    echo 'TRFK_USERPWD="user:dummyhash"'
+    echo 'TRFK_USERPWD="user:traefik:0123456789abcdef0123456789abcdef"'
   } > "${TEST_DIR}/test.sec"
 }
 

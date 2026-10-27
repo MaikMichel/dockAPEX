@@ -95,6 +95,11 @@ function validate_trfk_params() {
   check_params "TRAEFIK_DEFAULT_ROUTE" "TRAEFIK_DOMAIN" "TRAEFIK_DASHBOARD"
   [[ "$DCKAPX_LOCAL_TLS" == true ]] || check_params "TRAEFIK_LETSENCRYPT_EMAIL"
   check_secret "TRFK_USERPWD"
+  # digest auth: user:realm:MD5(user:realm:password), see _template/_template_sec
+  if [[ ! "$TRFK_USERPWD" =~ ^[^:]+:traefik:[0-9a-fA-F]{32}$ ]]; then
+    echo_error "TRFK_USERPWD must look like user:traefik:<md5 hash>, see _template/_template_sec"
+    exit 2
+  fi
 }
 
 # routed by a traefik of another stack, only the routing needs to be known

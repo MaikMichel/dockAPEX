@@ -107,3 +107,23 @@ teardown() { teardown_env; }
   run_dpex test.env config
   assert_success
 }
+
+@test "TRFK_USERPWD must be user:traefik:<md5 hash>" {
+  local bad
+  for bad in "e6b5f7dd21dc8dc693887a2835130cd1" "admin:other:e6b5f7dd21dc8dc693887a2835130cd1" "admin:traefik:tooshort" 'admin:$apr1$abc$def'; do
+    make_env TRAEFIK=true
+    unset_var TRFK_USERPWD
+    echo "TRFK_USERPWD=\"${bad}\"" >> "${TEST_DIR}/test.sec"
+    run_dpex test.env config
+    assert_failure 2
+    assert_output --partial "TRFK_USERPWD must look like"
+  done
+}
+
+@test "a valid TRFK_USERPWD is accepted" {
+  make_env TRAEFIK=true
+  unset_var TRFK_USERPWD
+  echo 'TRFK_USERPWD="admin:traefik:e6b5f7dd21dc8dc693887a2835130cd1"' >> "${TEST_DIR}/test.sec"
+  run_dpex test.env config
+  assert_success
+}
