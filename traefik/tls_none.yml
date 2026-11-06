@@ -1,0 +1,3 @@
+# no local certificates, Let's Encrypt is used
+tls:
+  certificates: []

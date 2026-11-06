@@ -1,0 +1,10 @@
+#!/bin/bash
+# test stub: records the call and writes the files like mkcert would
+echo "STUB mkcert $*"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -cert-file|-key-file) echo stub > "$2"; shift ;;
+  esac
+  shift
+done
+exit 0

@@ -184,3 +184,170 @@ check_files() {
   assert_output --partial "dashboard  https://example.org/traefik/"
   refute_output --partial "test.example.org"
 }
+
+# localhost domain: certificates from mkcert instead of Let's Encrypt
+@test "TRAEFIK with a localhost domain adds the local certificate overlay" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env config
+  assert_success
+  assert_output --partial "-f ./dock/traefik/docker_compose_localcert.yml "
+}
+
+@test "TRAEFIK with an external domain does not add the local certificate overlay" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=example.org
+  run_dpex test.env config
+  assert_success
+  refute_output --partial "docker_compose_localcert.yml"
+}
+
+@test "a subdomain of localhost is a local domain, too" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=Dev.LOCALHOST
+  run_dpex test.env config
+  assert_success
+  assert_output --partial "docker_compose_localcert.yml"
+}
+
+@test "a domain only ending like localhost is no local domain" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=notlocalhost.org
+  run_dpex test.env config
+  assert_success
+  refute_output --partial "docker_compose_localcert.yml"
+}
+
+@test "up creates the certificates for traefik and the project subdomain" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env up --detach
+  assert_success
+  assert_output --partial "STUB mkcert -install"
+  assert_output --partial "local-key.pem localhost test.localhost"
+  [ -f test.certs/local.pem ]
+  [ -f test.certs/local-key.pem ]
+  run grep -x "test.certs/" .gitignore
+  assert_success
+}
+
+@test "up keeps existing certificates of the same names" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env certs
+  assert_success
+  run_dpex test.env up --detach
+  assert_success
+  refute_output --partial "STUB mkcert"
+}
+
+@test "changed names create new certificates" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env certs
+  assert_success
+  sed -i.bak 's/^TRAEFIK_DOMAIN=.*/TRAEFIK_DOMAIN="dev.localhost"/' test.env
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "dev.localhost test.dev.localhost"
+}
+
+@test "an external domain needs no certificates on up" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=example.org
+  run_dpex test.env up --detach
+  assert_success
+  refute_output --partial "STUB mkcert"
+  [ ! -d test.certs ]
+}
+
+@test "missing mkcert exits 2 with install hints" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  cd "${TEST_DIR}"
+  # only the tools dpex.sh needs, so no mkcert of the host is found
+  mkdir bin
+  for t in bash dirname tr cat mkdir grep sed basename touch; do ln -s "$(command -v $t)" "bin/$t"; done
+  PATH="${TEST_DIR}/bin" run bash dock/dpex.sh test.env certs
+  assert_failure 2
+  assert_output --partial "mkcert is required"
+  assert_output --partial "brew install mkcert"
+}
+
+@test "certs without a localhost domain exits 2" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=example.org
+  run_dpex test.env certs
+  assert_failure 2
+  assert_output --partial "localhost"
+}
+
+@test "ports of a routed mailpit show the /mailpit/ path" {
+  make_env MAILPIT=true TRAEFIK_EXTERNAL=true TRAEFIK_DOMAIN=example.org
+  run_dpex test.env ports
+  assert_success
+  assert_output --partial "https://test.example.org/mailpit/"
+  assert_output --partial "http://localhost:49153/mailpit/"
+}
+
+@test "ports of a mailpit without traefik show the plain port" {
+  make_env MAILPIT=true
+  run_dpex test.env ports
+  assert_success
+  assert_output --partial "mailpit    http://localhost:49153"
+  refute_output --partial "/mailpit/"
+}
+
+@test "TRAEFIK_LOCAL_PROJECTS adds the subdomains of the other projects to the certificate" {
+  make_env DB=false APEX=false ORDS=false TRAEFIK=true TRAEFIK_DOMAIN=localhost 'TRAEFIK_LOCAL_PROJECTS=proj1 My_Proj2'
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "localhost test.localhost proj1.localhost my-proj2.localhost"
+}
+
+@test "TRAEFIK_LOCAL_PROJECTS does not repeat a name and renews the certificate on change" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost 'TRAEFIK_LOCAL_PROJECTS=test proj1'
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "localhost test.localhost proj1.localhost"
+  refute_output --partial "test.localhost test.localhost"
+  sed -i.bak 's/^TRAEFIK_LOCAL_PROJECTS=.*/TRAEFIK_LOCAL_PROJECTS="proj1 proj2"/' test.env
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "proj2.localhost"
+}
+
+@test "the first certificate tells to restart the browser" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "quit your browser completely"
+  refute_output --partial "force-recreate"
+}
+
+@test "a renewed certificate tells to recreate traefik" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env certs
+  assert_success
+  sed -i.bak 's/^TRAEFIK_DOMAIN=.*/TRAEFIK_DOMAIN="dev.localhost"/' test.env
+  run_dpex test.env certs
+  assert_success
+  assert_output --partial "up --detach --force-recreate traefik"
+  refute_output --partial "quit your browser"
+}
+
+@test "an unchanged certificate prints no hint" {
+  make_env TRAEFIK=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env certs
+  assert_success
+  run_dpex test.env certs
+  assert_success
+  refute_output --partial "quit your browser"
+  refute_output --partial "force-recreate"
+}
+
+@test "up of a project behind an external traefik on localhost names the todo" {
+  make_env TRAEFIK_EXTERNAL=true TRAEFIK_DOMAIN=localhost
+  run_dpex test.env up --detach
+  assert_success
+  assert_output --partial "comes from the traefik of the other stack"
+  assert_output --partial "needs test in TRAEFIK_LOCAL_PROJECTS"
+  refute_output --partial "STUB mkcert"
+}
+
+@test "up behind an external traefik on a real domain prints no certificate hint" {
+  make_env TRAEFIK_EXTERNAL=true TRAEFIK_DOMAIN=example.org
+  run_dpex test.env up --detach
+  assert_success
+  refute_output --partial "TRAEFIK_LOCAL_PROJECTS"
+}
